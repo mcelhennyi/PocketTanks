@@ -35,6 +35,8 @@ class Terrain:
         return self._terrain[pt]
 
     def grade_at_point(self, pt, width=4):
+        # TODO: Do smart things with small tall peaks, use some physics maybe??
+
         # dist either side
         dist = int(width/2.0)
 
@@ -76,13 +78,19 @@ class Terrain:
         # TODO Add a buffer to calculation to make it easier
         if location[X] > self._dimension[X]:
             # thing is out of the map
+            # print(location)
             raise OutOfMapException("Projectile out of map to the right.")
-        elif location[X] < self._dimension[X]:
+        elif location[X] < 0:
             # thing is out side of the map
+            # print(location)
+            # print(self._dimension)
             raise OutOfMapException("Projectile out of map to the left.")
 
+        # print(location)
+
         # We made it here, the thing is still in the map
-        if self._terrain[location[X]] >= location[Y]:
+        if self._terrain[location[X]] <= location[Y]:
+            print("INTERSECT WITH GROUND: " + str(self._terrain[location[X]]) + " " + str(location[Y]))
             # Terrain is over or equal to height of projectile at this X location, we intersect
             return True
         else:

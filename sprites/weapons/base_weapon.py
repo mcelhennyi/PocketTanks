@@ -1,130 +1,112 @@
+import math
+
 import pygame
 from pygame.sprite import Sprite
-
-from sprites import InvalidMoveException, X, Y, BLUE, RED, Character
-
-PROJECTILE_WIDTH = 3
-PROJECTILE_HEIGHT = 7
-LINE_WIDTH = 1
+from math import sin, cos
+from sprites import InvalidMoveException, X, Y, BLUE, RED
+from sprites.characters.projectile import BasicProjectileCharacter
 
 
-class ProjectileCharacter(Character):
-    def __init__(self, point, heading, color):
-        Character.__init__(self, vertex=point, color=color)
-
-        # Build the body
-        self._body = []  # list of points, of form [[x, y] ... ]
-        self._point = point
-        self._color = color
-        self._heading = heading
-
-        # Set initial Location of tank
-        self.move(new_x=point[X], new_y=point[Y], heading=self._heading)
-
-    def move(self, new_x, new_y, heading=0):
-        """
-        These param describe the center of this projectile
-
-        :param new_x:
-        :param new_y:
-        :param heading:
-        :return:
-        """
-
-        # Save location centroid
-        self._point[X] = new_x
-        self._point[Y] = new_y
-
-        # Save off new heading
-        self._heading = heading
-
-        self._body = [
-            [new_x - PROJECTILE_WIDTH/2, new_y + PROJECTILE_HEIGHT/2],  # LL
-            [new_x - PROJECTILE_WIDTH/2, new_y - PROJECTILE_HEIGHT/2],  # UL
-            [new_x + PROJECTILE_WIDTH/2, new_y - PROJECTILE_HEIGHT/2],  # UR
-            [new_x + PROJECTILE_WIDTH/2, new_y + PROJECTILE_HEIGHT/2],  # LR
-            [new_x - PROJECTILE_WIDTH / 2, new_y + PROJECTILE_HEIGHT / 2],  # LL - repeat first to close the shape
-        ]
-
-        # Rotate the body for the heading
-        self._body = self._rotate_polygon(self._body, heading)
-
-    def draw(self, surface):
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._body,
-                            LINE_WIDTH)
+GRAVITY = -9.8
 
 
 class BaseWeapon(Sprite):
-    def __init__(self, name, screen_dimensions, terrain, me, enemy):
+    def __init__(self, name, screen_dimensions, terrain, color, source_tank=None, target_tank=None):
         Sprite.__init__(self)
 
         # Game details
         self._dimension = screen_dimensions  # X, Y
         self._terrain = terrain
-        self._enemy_tank = enemy
-        self._my_tank = me
+        self._target_tank = target_tank
+        self._source_tank = source_tank
 
         # Weapon attributes
         self._location = (-1, -1)  # Locate all weapons off screen till used
         self._name = name
+        self._color = color
         self._character = None
 
         # Firing attributes
         self._angle = 0
         self._power = 0
-        self._starting_location = None
+        self._last_y_power = 0
+        self._start_location = [0, 0]
+        self._elapsed_total_time = 0
 
         # Animation details
         self._is_animating = False
         self._fire = False
         self._impact = False
         self._done = False
+        self._impact_callback = None
 
-    def update(self, *args):
+    def prepare(self, source_tank, target_tank):
+        self._source_tank = source_tank
+        self._target_tank = target_tank
+
+    def draw(self, surface):
+        if self._is_animating:
+            self._character.draw(surface)
+
+    def update(self, elapsed_time):
         # Animation
         if not self._done:
             if self._fire and not self._impact:
                 if not self._hit_me() and not self._hit_enemy() and not self._hit_ground():
                     # We are flying, step it forward
-                    self._step_flight()
+                    self._step_flight(elapsed_time)
+                    print("stepped")
 
                 elif self._hit_me():
                     # OUCH! You shot yourself!!!!
                     self._impact = True
+                    print("hit me")
 
                 elif self._hit_enemy():
                     # We hit the ground
                     self._impact = True
+                    print("hit enemy")
 
                 elif self._hit_ground():
                     # BOOO you missed
                     self._impact = True
+                    print("hit ground")
 
                 else:
                     # what happened here????
+                    print("unknown")
+
                     pass
             else:
                 # Animate the impact
                 self._done = True
+                self._impact_callback()
         else:
             self._is_animating = False
 
-    def fire(self, angle, power, from_location):
+    def fire(self, angle, power, from_location, impact_callback):
         if not self._is_animating:
             if not self._fire:
+                print("fire!!!!!")
                 # Initiate fire sequence
                 self._fire = True
                 self._is_animating = True
 
                 # Save off fire angle and power
                 self._power = power
+                self._last_y_power = power * sin(angle)
                 self._angle = angle
-                self._starting_location = from_location
-                self._character = ProjectileCharacter(location=from_location,
-                                                      heading=angle,
-                                                      color=RED)
+                self._start_location = from_location
+                self._location = from_location
+
+                # Save off the callback for an impact
+                self._impact_callback = impact_callback
+
+                # Init character
+                self._character = BasicProjectileCharacter(
+                    from_location,
+                    color=self._color
+                )
             else:
                 raise InvalidMoveException("Cannot fire while weapon is already firing.")
         else:
@@ -144,14 +126,30 @@ class BaseWeapon(Sprite):
     def _hit_ground(self):
         return self._terrain.intersects_terrain(self._location)
 
-    def _step_flight(self):
+    def _step_flight(self, elapsed_time):
         # TODO: Physics
-        new_x = 0
-        new_y = 0
         heading = 0
 
+        # Save of the simulated distance
+        self._elapsed_total_time += (elapsed_time / 100000.0)
+
+        # velocities velocities
+        ux = self._power * cos(self._angle*math.pi/180.0)  # X velocity doesnt change
+        uy = self._power * sin(self._angle*math.pi/180.)  # get initial y for calculation
+        vy = self._power * sin(self._angle*math.pi/180.) + GRAVITY*self._elapsed_total_time  # get current y vel
+
+        # Total time of flight
+        new_x = int(self._location[X] + ux * self._elapsed_total_time)
+        new_y = int(self._location[Y] - (((vy + uy) / 2) * self._elapsed_total_time))
+
+        print("Old location: " + str(self._start_location[X]) + ", " + str(self._start_location[Y]))
+        print("New location: " + str(new_x) + ", " + str(new_y))
+
         # Move the character
-        self._character.move_projectile(new_x=new_x, new_y=new_y, heading=heading)
+        self._character.move(new_x=new_x, new_y=new_y, heading=heading)
 
         # Save off new locations
         self._location = [new_x, new_y]
+
+        # Save off y velocity
+        self._last_y_power = vy

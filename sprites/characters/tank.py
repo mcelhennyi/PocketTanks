@@ -19,6 +19,10 @@ class CannonCharacter(Character):
     def __init__(self, vertex, color):
         Character.__init__(self, vertex=vertex, color=color)
 
+    def get_tip(self):
+        pt = [self._vertex[X], self._vertex[Y] + CANNON_HEIGHT]
+        return self._rotate_point(pt)
+
     def draw(self, surface):
         pygame.draw.polygon(surface,
                             self._color,
@@ -58,6 +62,9 @@ class TurretCharacter(Character):
 
     def set_cannon_angle(self, ang):
         self._cannon_angle = ang
+
+    def get_cannon_tip(self):
+        return self._cannon.get_tip()
 
     def move(self, new_x, new_y, heading=0):
         Character.move(self, new_x, new_y, heading)
@@ -108,6 +115,9 @@ class TankCharacter(Character):
 
     def set_cannon_angle(self, ang):
         self._turret.set_cannon_angle(ang)
+
+    def get_cannon_tip(self):
+        return self._turret.get_cannon_tip()
 
     def move(self, new_x, new_y, heading=0):
         Character.move(self, new_x, new_y, heading)

@@ -20,6 +20,15 @@ class Character:
         self._vertex[Y] = new_y
         self._heading = heading
 
+    def _rotate_point(self, pt):
+        theta = math.radians(self._heading)  # Convert angle to radians
+        cosang, sinang = cos(theta), sin(theta)
+        x, y = pt[X], pt[Y]
+        tx, ty = x - self._vertex[X], y - self._vertex[Y]
+        new_x = (tx * cosang + ty * sinang) + self._vertex[X]
+        new_y = (-tx * sinang + ty * cosang) + self._vertex[Y]
+        return [int(new_x), int(new_y)]
+
     def _rotate_polygon(self):
         """ Rotate polygon the given angle about its vertex. """
         theta = math.radians(self._heading)  # Convert angle to radians

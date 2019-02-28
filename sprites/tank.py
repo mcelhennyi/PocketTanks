@@ -22,6 +22,7 @@ class Tank(Sprite):
         # Game details
         self._dimension = screen_dimensions  # x, y
         self._terrain = terrain
+        self._enemy = None
 
         # Tank attributes
         self._location = location
@@ -30,7 +31,7 @@ class Tank(Sprite):
         self._tank_character = TankCharacter(location, color)
 
         # Gun attributes
-        self._gun_angle = MAX_ANGLE/2
+        self._gun_angle = MAX_ANGLE/4
         self._gun_power = MAX_POWER/2
 
         # Weapons
@@ -40,12 +41,19 @@ class Tank(Sprite):
         # Animation tracking
         self._is_animating = False
 
+    def set_target(self, tank):
+        self._enemy = tank
+
     # Render functions for animations
-    def update(self):
+    def update(self, elapsed_time):
         # self._is_animating = True
         # Will used to animate
 
         # Update/Move the tank
+        if self._is_animating:
+            self._step_animation(elapsed_time)
+            self._weapons[self._weapon_selected].update(elapsed_time)
+
         self._tank_character.set_cannon_angle(self._gun_angle)
         self._tank_character.move(
             self._location[X],
@@ -55,6 +63,8 @@ class Tank(Sprite):
 
     def draw(self, surface):
         self._tank_character.draw(surface)
+        if self._is_animating:
+            self._weapons[self._weapon_selected].draw(surface)
 
     # --------------------- #
     # Change to next weapon #
@@ -126,6 +136,7 @@ class Tank(Sprite):
     def increase_power(self):
         if not self._is_animating:
             if self._gun_power < MAX_POWER:
+                print("more- power: " + str(self._gun_power))
                 self._gun_power += 1
             else:
                 # invalid move
@@ -139,12 +150,27 @@ class Tank(Sprite):
     def decrease_power(self):
         if not self._is_animating:
             if self._gun_power > MIN_POWER:
+                print("less power: " + str(self._gun_power))
                 self._gun_power -= 1
             else:
                 # invalid move
                 raise InvalidMoveException("Cannot decrease power past " + str(MIN_POWER))
         else:
             raise InvalidMoveException("Cannot play while game is animating.")
+
+    def _get_cannon_tip(self):  # returns location [x, y]
+        return self._tank_character.get_cannon_tip()
+
+    def fire(self):
+        # Setup the weapon
+        weapon = self._weapons[self._weapon_selected]
+        weapon.prepare(self, self._enemy)
+
+        # FIRE!!!!
+        weapon.fire(self._gun_angle, self._gun_power, self._get_cannon_tip(), self._impact_callback)
+
+        # Enable animation
+        self._is_animating = True
 
     # ------------------ #
     # ---- PRIVATES ---- #
@@ -163,5 +189,9 @@ class Tank(Sprite):
         else:
             raise InvalidMoveException("Cannot play while game is animating.")
 
-    def _step_animation(self):
+    def _step_animation(self, elapsed_time):
         pass
+
+    def _impact_callback(self):
+        self._is_animating = False
+        self.load_next_weapon()
