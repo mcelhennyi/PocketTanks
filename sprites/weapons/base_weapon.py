@@ -1,40 +1,39 @@
-import math
-from math import sin, cos
-
 import pygame
-from numpy.ma import dot
 from pygame.sprite import Sprite
 
-from sprites import InvalidMoveException, X, Y, BLUE, RED
+from sprites import InvalidMoveException, X, Y, BLUE, RED, Character
 
 PROJECTILE_WIDTH = 3
 PROJECTILE_HEIGHT = 7
 LINE_WIDTH = 1
 
 
-class ProjectileCharacter:
-    def __init__(self, location, heading, color):
+class ProjectileCharacter(Character):
+    def __init__(self, point, heading, color):
+        Character.__init__(self, vertex=point, color=color)
+
         # Build the body
         self._body = []  # list of points, of form [[x, y] ... ]
-        self._location = location
+        self._point = point
         self._color = color
         self._heading = heading
 
         # Set initial Location of tank
-        self.move_projectile(new_x=location[X], new_y=location[Y], heading=self._heading)
+        self.move(new_x=point[X], new_y=point[Y], heading=self._heading)
 
-    def move_projectile(self, new_x, new_y, heading):
+    def move(self, new_x, new_y, heading=0):
         """
         These param describe the center of this projectile
 
         :param new_x:
         :param new_y:
+        :param heading:
         :return:
         """
 
         # Save location centroid
-        self._location[X] = new_x
-        self._location[Y] = new_y
+        self._point[X] = new_x
+        self._point[Y] = new_y
 
         # Save off new heading
         self._heading = heading
@@ -55,37 +54,6 @@ class ProjectileCharacter:
                             self._color,
                             self._body,
                             LINE_WIDTH)
-
-    def _rotate_polygon(self, polygon, degrees):
-        """ Rotate polygon the given angle about its center. """
-        theta = math.radians(degrees)  # Convert angle to radians
-        cosang, sinang = cos(theta), sin(theta)
-
-        # find center point of Polygon to use as pivot
-        n = len(polygon)
-        cx = sum(p[X] for p in polygon) / n
-        cy = sum(p[Y] for p in polygon) / n
-
-        new_points = []
-        for p in polygon:
-            x, y = p.getX(), p.getY()
-            tx, ty = x - cx, y - cy
-            new_x = (tx * cosang + ty * sinang) + cx
-            new_y = (-tx * sinang + ty * cosang) + cy
-            new_points.append([new_x, new_y])
-        return new_points
-
-    # def rotate_2d(self, pts, cnt, ang=0):
-    #     """
-    #     pts = {} Rotates points(nx2) about center cnt(2) by angle ang(1) in degrees
-    #
-    #     :param pts:
-    #     :param cnt:
-    #     :param ang:
-    #     :return:
-    #     """
-    #     ang = ang * math.pi/180.0
-    #     return dot(pts - cnt, list([[cos(ang), sin(ang)], [-sin(ang), cos(ang)]])) + cnt
 
 
 class BaseWeapon(Sprite):
