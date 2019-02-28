@@ -1,9 +1,10 @@
 import pygame
 from pygame.sprite import Sprite
-from sprites import X, Y, InvalidMoveException, BLUE, Character
+from sprites import X, Y, InvalidMoveException, BLUE
+from sprites.characters.tank import TankCharacter, TANK_WIDTH
 
 MOVE_DISTANCE = 10
-MOVE_COUNT_MAX = 5
+MOVE_COUNT_MAX = 100
 
 MAX_ANGLE = 180
 MIN_ANGLE = 0
@@ -12,136 +13,6 @@ MIN_POWER = 0
 
 LEFT = 0
 RIGHT = 1
-
-TANK_WIDTH = 31
-TANK_HEIGHT = 13
-
-TURRET_WIDTH = 13
-TURRET_HEIGHT = 9
-
-CANNON_WIDTH = 3  # When the cannon is pointing to 90 degrees
-CANNON_HEIGHT = 21  # When cannon is pointing to 90 degrees
-
-LINE_WIDTH = 3
-
-
-class CannonCharacter(Character):
-    def __init__(self, vertex, color):
-        Character.__init__(self, vertex=vertex, color=color)
-
-    def draw(self, surface):
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
-
-    def move(self, new_x, new_y, heading=0):
-        Character.move(self, new_x, new_y, heading)
-
-        # Cannon of the tank - we will assume 0 degrees is to the right, and center the vertex of the cannon at
-        #  the middle of the turret
-        self._polygon = [
-            [new_x, new_y+0.5*CANNON_WIDTH],  # LL
-            [new_x, new_y-CANNON_WIDTH],  # UL
-            [new_x+CANNON_HEIGHT, new_y-CANNON_WIDTH],  # UR
-            [new_x+CANNON_HEIGHT, new_y+0.5*CANNON_WIDTH],  # LR
-            [new_x, new_y+0.5*CANNON_WIDTH],  # LL - repeat first to close poly
-        ]
-
-        # Adjust the cannon's heading
-        self._rotate_polygon()
-
-
-class TurretCharacter(Character):
-    def __init__(self, vertex, color):
-        Character.__init__(self, vertex=vertex, color=color)
-        # Setup the cannon
-        self._cannon = CannonCharacter(
-            [
-                # Set vertex to middle of turret
-                vertex[X],
-                vertex[Y] - 0.5*TURRET_HEIGHT
-            ],
-            color
-        )
-        self._cannon_angle = 0
-
-    def set_cannon_angle(self, ang):
-        self._cannon_angle = ang
-
-    def move(self, new_x, new_y, heading=0):
-        Character.move(self, new_x, new_y, heading)
-
-        # Move the turret poly
-        self._polygon = [
-            [new_x-0.5*TURRET_WIDTH, new_y],  # LL
-            [new_x-0.5*TURRET_WIDTH, new_y-TURRET_HEIGHT],  # UL
-            [new_x+0.5*TURRET_WIDTH, new_y-TURRET_HEIGHT],  # UR
-            [new_x+0.5*TURRET_WIDTH, new_y],  # LR
-            [new_x-0.5*TURRET_WIDTH, new_y],  # LL - repeat first to close the shape
-        ]
-
-        # Move and rotate cannon
-        self._cannon.move(new_x,
-                          new_y - 0.5*TURRET_HEIGHT,
-                          self._cannon_angle)  # Pass in the angle of the cannon to the 'heading' param
-
-    def draw(self, surface):
-        # Draw the turret
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
-
-        # Draw the cannon
-        self._cannon.draw(surface)
-
-
-class TankCharacter(Character):
-    def __init__(self, vertex, color):
-        Character.__init__(self, vertex=vertex, color=color)
-
-        # Setup the turret
-        self._turret = TurretCharacter(
-            [
-                vertex[X],
-                vertex[Y]-TANK_HEIGHT  # The turrets base/vertex is the base where it meets the body
-            ],
-            color
-        )
-
-        # Set initial Location of tank
-        self.move(new_x=vertex[X], new_y=vertex[Y], heading=0)
-
-    def set_cannon_angle(self, ang):
-        self._turret.set_cannon_angle(ang)
-
-    def move(self, new_x, new_y, heading=0):
-        Character.move(self, new_x, new_y, heading)
-
-        # Body of tank - bottom part
-        self._polygon = [
-            [new_x-0.5*TANK_WIDTH, new_y],  # LL
-            [new_x-0.5*TANK_WIDTH, new_y-TANK_HEIGHT],  # UL
-            [new_x+0.5*TANK_WIDTH, new_y-TANK_HEIGHT],  # UR
-            [new_x+0.5*TANK_WIDTH, new_y],  # LR
-            [new_x-0.5*TANK_WIDTH, new_y],  # LL - repeat first to close the shape
-        ]
-
-        # Move turret
-        self._turret.move(new_x,
-                          new_y-TANK_HEIGHT,
-                          self._heading)
-
-    def draw(self, surface):
-        # Draw the body - 0
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
-
-        # Draw the turret
-        self._turret.draw(surface)
 
 
 class Tank(Sprite):
@@ -179,7 +50,7 @@ class Tank(Sprite):
         self._tank_character.move(
             self._location[X],
             self._location[Y],
-            0
+            self._terrain.grade_at_point(self._location[X], TANK_WIDTH)
         )
 
     def draw(self, surface):

@@ -4,7 +4,7 @@ import pygame
 
 from sprites import BLUE, RED, GREEN, InvalidMoveException, BLACK
 from sprites.tank import Tank
-from terrain import Terrain
+from map.terrain import Terrain
 
 
 class App:
@@ -41,6 +41,8 @@ class App:
                            color=RED,
                            terrain=self._terrain,
                            )
+
+        return True
 
     def on_event(self, event):
         try:
@@ -91,15 +93,14 @@ class App:
 
         pygame.display.update()
 
-
     def on_cleanup(self):
         pygame.quit()
 
     def on_execute(self):
-        if self.on_init() == False:
+        if not self.on_init():
             self._running = False
 
-        while (self._running):
+        while self._running:
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()

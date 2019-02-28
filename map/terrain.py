@@ -1,4 +1,6 @@
 import bisect
+import math
+from math import atan2
 
 import pygame
 
@@ -31,6 +33,22 @@ class Terrain:
 
     def height_at_point(self, pt):
         return self._terrain[pt]
+
+    def grade_at_point(self, pt, width=4):
+        # dist either side
+        dist = int(width/2.0)
+
+        # Get the x value for point left and right of middle point
+        less_x = pt - dist if pt - dist >= 0 else 0
+        high_x = pt + dist if pt + dist < self._dimension[X] else self._dimension[X] - 1
+
+        # Get the y value for point left and right of middle point
+        h_less = self._terrain[less_x]
+        h_high = self._terrain[high_x]
+
+        # Calculate and return slope - What a bitch
+        slope = - (360 + ((atan2((h_less - h_high), (less_x - high_x)) * 180.0 / math.pi) - 180))
+        return slope
 
     def generate_terrain(self):
         # previous_height = random.randint(self._dimension[Y] - MAX_TERRAIN, self._dimension[Y] - 1)
