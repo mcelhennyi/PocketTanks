@@ -29,6 +29,7 @@ class Tank(Sprite):
         self._move_count = MOVE_COUNT_MAX
         self._move_amt = 0
         self._tank_character = TankCharacter(location, color)
+        self._health = 100
 
         # Gun attributes
         self._gun_angle = MAX_ANGLE/4
@@ -41,8 +42,17 @@ class Tank(Sprite):
         # Animation tracking
         self._is_animating = False
 
+    def get_location(self):
+        return self._location
+
     def set_target(self, tank):
         self._enemy = tank
+
+    def damage(self, damage_value):
+        if self._health >= damage_value:
+            self._health -= damage_value
+        else:
+            self._health = 0
 
     # Render functions for animations
     def update(self, elapsed_time):

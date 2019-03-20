@@ -2,6 +2,7 @@ import random
 
 import pygame
 
+from map.score_board import ScoreBoard
 from sprites import BLUE, RED, GREEN, InvalidMoveException, BLACK
 from sprites.tank import Tank
 from map.terrain import Terrain, OutOfMapException
@@ -55,6 +56,8 @@ class App:
         self._tank1.set_target(self._tank2)
         self._tank2.set_target(self._tank1)
 
+        self._score_board = ScoreBoard(self.size, self._terrain, self._tank1, self._tank2)
+
         return True
 
     def on_event(self, event):
@@ -107,6 +110,9 @@ class App:
         # update tank2
         self._tank2.update(elapsed_time)
 
+        # Update Scoreboard
+        self._score_board.update()
+
     def on_render(self):
         # Reset screen to black
         self._display_surf.fill(BLACK)
@@ -119,6 +125,9 @@ class App:
 
         # Draw player 2
         self._tank2.draw(self._display_surf)
+
+        # Draw Scoreboard
+        self._score_board.draw(self._display_surf)
 
         pygame.display.update()
 

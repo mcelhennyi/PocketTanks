@@ -3,9 +3,11 @@ import math
 import pygame
 from pygame.sprite import Sprite
 from math import sin, cos
+
+from map.terrain import OutOfMapException
 from sprites import InvalidMoveException, X, Y, BLUE, RED
 from sprites.characters.projectile import BasicProjectileCharacter
-
+from sprites.tank import Tank
 
 GRAVITY = -9.8
 
@@ -25,6 +27,8 @@ class BaseWeapon(Sprite):
         self._name = name
         self._color = color
         self._character = None
+        self._damage_radius = 10
+        self._damage_multiplier = 2
 
         # Firing attributes
         self._angle = 0
@@ -52,31 +56,39 @@ class BaseWeapon(Sprite):
         # Animation
         if not self._done:
             if self._fire and not self._impact:
-                if not self._hit_me() and not self._hit_enemy() and not self._hit_ground():
-                    # We are flying, step it forward
-                    self._step_flight(elapsed_time)
-                    print("stepped")
+                try:
+                    if not self._hit_source() and not self._hit_enemy() and not self._hit_ground():
+                        # We are flying, step it forward
+                        self._step_flight(elapsed_time)
+                        print("stepped")
 
-                elif self._hit_me():
-                    # OUCH! You shot yourself!!!!
+                    elif self._hit_source():
+                        # OUCH! You shot yourself!!!!
+                        self._impact = True
+                        print("hit source")
+                        distance = self._distance(self._source_tank.get_location())
+                        self._source_tank.damage((distance/self._damage_radius)*self._damage_multiplier)
+
+                    elif self._hit_enemy():
+                        # We hit the ground
+                        self._impact = True
+                        print("hit enemy")
+                        distance = self._distance(self._target_tank.get_location())
+                        self._target_tank.damage((distance/self._damage_radius)*self._damage_multiplier)
+
+                    elif self._hit_ground():
+                        # BOOO you missed
+                        self._impact = True
+                        print("hit ground")
+
+                    else:
+                        # what happened here????
+                        print("unknown")
+
+                        pass
+                except OutOfMapException:
+                    # We flew out of the map, no reasom to do any more
                     self._impact = True
-                    print("hit me")
-
-                elif self._hit_enemy():
-                    # We hit the ground
-                    self._impact = True
-                    print("hit enemy")
-
-                elif self._hit_ground():
-                    # BOOO you missed
-                    self._impact = True
-                    print("hit ground")
-
-                else:
-                    # what happened here????
-                    print("unknown")
-
-                    pass
             else:
                 # Animate the impact
                 self._done = True
@@ -113,15 +125,41 @@ class BaseWeapon(Sprite):
             raise InvalidMoveException("Weapon already fired.")
 
     def is_available(self):
-        return self._done
+        return not self._done
 
     def _hit_enemy(self):
-        # TODO
+        try:
+            if self._hit_ground():
+                # If the projectile hits the ground, lets check if it hit the enemy
+                distance = self._distance(self._target_tank.get_location())
+                if distance <= self._damage_radius:
+                    return True
+        except OutOfMapException:
+            # We flew out of the map, no reasom to do any more
+            pass
+
         return False
 
-    def _hit_me(self):
-        # TODO
+    def _hit_source(self):
+        try:
+            if self._hit_ground():
+                # If the projectile hits the ground, lets check if it hit the source
+                distance = self._distance(self._source_tank.get_location())
+                if distance <= self._damage_radius:
+                    return True
+        except OutOfMapException:
+            # We flew out of the map, no reasom to do any more
+            pass
+
         return False
+
+    def _distance(self, location):
+        x_target = location[X]
+        y_target = location[Y]
+        print(x_target)
+        print(y_target)
+        print(self._location)
+        return math.sqrt((x_target - self._location[X])**2 + (y_target - self._location[Y])**2)
 
     def _hit_ground(self):
         return self._terrain.intersects_terrain(self._location)
