@@ -108,7 +108,8 @@ class BaseWeapon(Sprite):
                 self._power = power
                 self._last_y_power = power * sin(angle)
                 self._angle = angle
-                self._start_location = from_location
+                self._start_location[X] = from_location[X]
+                self._start_location[Y] = from_location[Y]
                 self._location = from_location
 
                 # Save off the callback for an impact
@@ -168,20 +169,31 @@ class BaseWeapon(Sprite):
         # TODO: Physics
         heading = 0
 
+        # Adjust all the times to scale it back
+        ts = 0.00001
+
         # Save of the simulated distance
-        self._elapsed_total_time += (elapsed_time / 100000.0)
+        self._elapsed_total_time += (elapsed_time / 1000000.0)  # Elapsed comes in millis
 
         # velocities velocities
         ux = self._power * cos(self._angle*math.pi/180.0)  # X velocity doesnt change
-        uy = self._power * sin(self._angle*math.pi/180.)  # get initial y for calculation
-        vy = self._power * sin(self._angle*math.pi/180.) + GRAVITY*self._elapsed_total_time  # get current y vel
+        uy = self._power * sin(self._angle*math.pi/180.0)  # get initial y for calculation
 
         # Total time of flight
-        new_x = int(self._location[X] + ux * self._elapsed_total_time)
-        new_y = int(self._location[Y] - (((vy + uy) / 2) * self._elapsed_total_time))
+        # x = x0 + v0t
+        new_x = int(self._start_location[X] +
+                    ux * self._elapsed_total_time
+                    )
+        # y = y0 + v0t + 1/2(at^2)
+        new_y = int(self._start_location[Y] +
+                    - (uy * self._elapsed_total_time +
+                    (0.5 * GRAVITY * self._elapsed_total_time**2))
+                    )
 
         print("Old location: " + str(self._start_location[X]) + ", " + str(self._start_location[Y]))
         print("New location: " + str(new_x) + ", " + str(new_y))
+
+        print("Delta x: " + str(self._location[X] - new_x))
 
         # Move the character
         self._character.move(new_x=new_x, new_y=new_y, heading=heading)
@@ -190,4 +202,4 @@ class BaseWeapon(Sprite):
         self._location = [new_x, new_y]
 
         # Save off y velocity
-        self._last_y_power = vy
+        # self._last_y_power = vy

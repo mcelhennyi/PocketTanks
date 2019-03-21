@@ -20,14 +20,16 @@ class CannonCharacter(Character):
         Character.__init__(self, vertex=vertex, color=color)
 
     def get_tip(self):
-        pt = [self._vertex[X], self._vertex[Y] + CANNON_HEIGHT]
-        return self._rotate_point(pt)
+        # pt = [self._vertex[X], self._vertex[Y] - CANNON_HEIGHT]
+        # return self._rotate_point(pt)
+        return [int(self._polygon[2][X]), int(self._polygon[2][Y])]
 
     def draw(self, surface):
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
+        if self._ready:
+            pygame.draw.polygon(surface,
+                                self._color,
+                                self._polygon,
+                                LINE_WIDTH)
 
     def move(self, new_x, new_y, heading=0):
         Character.move(self, new_x, new_y, heading)
@@ -44,6 +46,8 @@ class CannonCharacter(Character):
 
         # Adjust the cannon's heading
         self._rotate_polygon()
+
+        self._ready = True
 
 
 class TurretCharacter(Character):
@@ -86,15 +90,18 @@ class TurretCharacter(Character):
         # Rotate to match terrain
         self._rotate_polygon()
 
-    def draw(self, surface):
-        # Draw the turret
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
+        self._ready = True
 
-        # Draw the cannon
-        self._cannon.draw(surface)
+    def draw(self, surface):
+        if self._ready:
+            # Draw the turret
+            pygame.draw.polygon(surface,
+                                self._color,
+                                self._polygon,
+                                LINE_WIDTH)
+
+            # Draw the cannon
+            self._cannon.draw(surface)
 
 
 class TankCharacter(Character):
@@ -139,12 +146,15 @@ class TankCharacter(Character):
         # Rotate to match terrain
         self._rotate_polygon()
 
-    def draw(self, surface):
-        # Draw the body - 0
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
+        self._ready = True
 
-        # Draw the turret
-        self._turret.draw(surface)
+    def draw(self, surface):
+        if self._ready:
+            # Draw the body - 0
+            pygame.draw.polygon(surface,
+                                self._color,
+                                self._polygon,
+                                LINE_WIDTH)
+
+            # Draw the turret
+            self._turret.draw(surface)

@@ -10,6 +10,7 @@ class Character:
         self._color = color
         self._polygon = []
         self._heading = 0
+        self._ready = False
 
     def draw(self, surface):
         pass
@@ -20,8 +21,10 @@ class Character:
         self._vertex[Y] = new_y
         self._heading = heading
 
+        self._ready = True
+
     def _rotate_point(self, pt):
-        theta = math.radians(self._heading)  # Convert angle to radians
+        theta = math.radians(-self._heading)  # Convert angle to radians
         cosang, sinang = cos(theta), sin(theta)
         x, y = pt[X], pt[Y]
         tx, ty = x - self._vertex[X], y - self._vertex[Y]

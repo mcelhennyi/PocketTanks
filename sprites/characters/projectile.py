@@ -14,11 +14,12 @@ class BasicProjectileCharacter(Character):
         Character.__init__(self, vertex=vertex, color=color)
 
     def draw(self, surface):
-        pygame.draw.polygon(surface,
-                            self._color,
-                            self._polygon,
-                            LINE_WIDTH)
-        print("Drawing: " + str(self._polygon))
+        if self._ready:
+            pygame.draw.polygon(surface,
+                                self._color,
+                                self._polygon,
+                                LINE_WIDTH)
+            print("Drawing: " + str(self._polygon))
 
     def move(self, new_x, new_y, heading=0):
         Character.move(self, new_x, new_y, heading)
@@ -37,3 +38,5 @@ class BasicProjectileCharacter(Character):
 
         # Adjust the cannon's heading
         self._rotate_polygon()
+
+        self._ready = True
