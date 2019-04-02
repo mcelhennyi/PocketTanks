@@ -65,6 +65,15 @@ class Tank(Sprite):
     def get_color(self):
         return self._color
 
+    def get_power(self):
+        return self._gun_power
+
+    def get_angle(self):
+        return self._gun_angle
+
+    def get_move_count(self):
+        return self._move_count
+
     def get_current_weapon_name(self):
         return self._weapons[self._weapon_selected].get_name()
 
