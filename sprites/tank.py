@@ -16,20 +16,24 @@ RIGHT = 1
 
 
 class Tank(Sprite):
-    def __init__(self, screen_dimensions, location, weapons_list, terrain, color=BLUE):
+    def __init__(self, screen_dimensions, location, weapons_list, terrain, color=BLUE, name='Name', switch_player_callback=None, damage_callback=None):
         Sprite.__init__(self)
 
         # Game details
         self._dimension = screen_dimensions  # x, y
         self._terrain = terrain
         self._enemy = None
+        self._switch_player_callback = switch_player_callback
+        self._damage_callback = damage_callback
 
         # Tank attributes
         self._location = location
         self._move_count = MOVE_COUNT_MAX
         self._move_amt = 0
+        self._color = color
         self._tank_character = TankCharacter(location, color)
         self._health = 100
+        self._name = name
 
         # Gun attributes
         self._gun_angle = MAX_ANGLE/4
@@ -42,17 +46,38 @@ class Tank(Sprite):
         # Animation tracking
         self._is_animating = False
 
+
     def get_location(self):
         return self._location
 
     def set_target(self, tank):
         self._enemy = tank
 
+    def is_alive(self):
+        return self._health > 0
+
+    def get_name(self):
+        return self._name
+
+    def get_health(self):
+        return self._health
+
+    def get_color(self):
+        return self._color
+
+    def get_current_weapon_name(self):
+        return self._weapons[self._weapon_selected].get_name()
+
     def damage(self, damage_value):
+        damage_value = int(damage_value)
         if self._health >= damage_value:
             self._health -= damage_value
+
+            self._damage_callback(self._name, damage_value)
         else:
             self._health = 0
+
+        print(self._name + ": Ouch!, I've been damaged by " + str(damage_value) + ", my new health is: " + str(self._health))
 
     # Render functions for animations
     def update(self, elapsed_time):
@@ -205,3 +230,4 @@ class Tank(Sprite):
     def _impact_callback(self):
         self._is_animating = False
         self.load_next_weapon()
+        self._switch_player_callback()

@@ -20,6 +20,12 @@ class App:
 
         self._terrain = None
 
+        self._score_board = None
+
+        self._game_over = False
+
+        self._player_1_active = True
+
     def on_init(self):
         pygame.init()
         self._display_surf = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
@@ -30,12 +36,12 @@ class App:
 
         # Generate a list of weapons
         weapons1 = []
-        for i in range(0, 10):
-            weapons1.append(BaseWeapon('BASIC', self.size, self._terrain, BLUE))
+        for i in range(0, 100):
+            weapons1.append(BaseWeapon('BASIC_'+str(i), self.size, self._terrain, BLUE))
 
         weapons2 = []
-        for i in range(0, 10):
-            weapons2.append(BaseWeapon('BASIC', self.size, self._terrain, RED))
+        for i in range(0, 100):
+            weapons2.append(BaseWeapon('BASIC_'+str(i), self.size, self._terrain, RED))
 
         # Setup two tanks
         tank1_location_x = random.randint(0, int(self.width/3.0))
@@ -45,18 +51,25 @@ class App:
                            weapons_list=weapons1,
                            color=BLUE,
                            terrain=self._terrain,
+                           name="Player 1 (You)",
+                           switch_player_callback=self._switch_player,
+                           damage_callback=self._show_damage
                            )
         self._tank2 = Tank(screen_dimensions=self.size,
                            location=[tank2_location_x, self._terrain.height_at_point(tank2_location_x)],
                            weapons_list=weapons2,
                            color=RED,
                            terrain=self._terrain,
+                           name="Player 2 (CPU)",
+                           switch_player_callback=self._switch_player,
+                           damage_callback=self._show_damage
                            )
 
         self._tank1.set_target(self._tank2)
         self._tank2.set_target(self._tank1)
 
         self._score_board = ScoreBoard(self.size, self._terrain, self._tank1, self._tank2)
+        self._score_board.switch_active_player(self._tank1)
 
         return True
 
@@ -66,36 +79,53 @@ class App:
                 self._running = False
 
             elif event.type == pygame.KEYDOWN:
-                # MOVE TANK LEFT
-                if event.key == pygame.K_LEFT:
-                    self._tank1.move_left()
+                if not self._game_over:
+                    # MOVE TANK LEFT
+                    if event.key == pygame.K_LEFT:
+                        self._tank1.move_left()
 
-                # MOVE TANK RIGHT
-                elif event.key == pygame.K_RIGHT:
-                    self._tank1.move_right()
+                    # MOVE TANK RIGHT
+                    elif event.key == pygame.K_RIGHT:
+                        self._tank1.move_right()
 
-                # MOVE Turret UP
-                elif event.key == pygame.K_UP:
-                    self._tank1.increase_angle()
+                    # MOVE Turret UP
+                    elif event.key == pygame.K_UP:
+                        self._tank1.increase_angle()
 
-                # MOVE Turret DOWN
-                elif event.key == pygame.K_DOWN:
-                    self._tank1.decrease_angle()
+                    # MOVE Turret DOWN
+                    elif event.key == pygame.K_DOWN:
+                        self._tank1.decrease_angle()
 
-                # MOVE power UP
-                elif event.key == pygame.K_EQUALS:
-                    self._tank1.increase_power()
+                    # MOVE power UP
+                    elif event.key == pygame.K_EQUALS:
+                        self._tank1.increase_power()
 
-                # MOVE power DOWN
-                elif event.key == pygame.K_MINUS:
-                    self._tank1.decrease_power()
+                    # MOVE power DOWN
+                    elif event.key == pygame.K_MINUS:
+                        self._tank1.decrease_power()
 
-                # Fire
-                elif event.key == pygame.K_f:
-                    self._tank1.fire()
+                    # Fire
+                    elif event.key == pygame.K_f:
+                        self._tank1.fire()
 
+                    # Increase weapon choice
+                    elif event.key == pygame.K_PERIOD:
+                        self._tank1.load_next_weapon()
+
+                    # Decrease weapon choice
+                    elif event.key == pygame.K_COMMA:
+                        self._tank1.load_previous_weapon()
+
+                    else:
+                        # print("You pressed: " + str(event.key))
+                        pass
                 else:
-                    print("You pressed: " + str(event.key))
+                    print("Game over, restart game to play again.")
+
+                if event.key == pygame.K_q:
+                    print("Game over, you pressed quit.")
+                    self._running = False
+
         except InvalidMoveException as e:
             print('Whoops!')
             print(e)
@@ -103,15 +133,30 @@ class App:
             print('Whoops!')
             print(e)
 
-    def on_loop(self, elapsed_time):
-        # Update Tank1
-        self._tank1.update(elapsed_time)
+    def _show_damage(self, damaged_name, damage_amount):
+        self._score_board.damage_display(damaged_name, damage_amount)
 
-        # update tank2
-        self._tank2.update(elapsed_time)
+    def _switch_player(self):
+        self._player_1_active = not self._player_1_active
+        self._score_board.switch_active_player(self._tank1 if self._player_1_active else self._tank2)
+
+    def on_loop(self, elapsed_time):
+        if not self._game_over:
+            # Update Tank1
+            self._tank1.update(elapsed_time)
+
+            # update tank2
+            self._tank2.update(elapsed_time)
+        else:
+            # send signal to display result
+            self._score_board.end_game(self._tank1 if self._tank1.is_alive() else self._tank2)
 
         # Update Scoreboard
         self._score_board.update()
+
+        # Print out game status
+        if not self._tank1.is_alive() or not self._tank2.is_alive():
+            self._game_over = True
 
     def on_render(self):
         # Reset screen to black

@@ -4,7 +4,7 @@ from sprites import Y, X
 from sprites.characters import Character
 
 BASIC_PROJECTILE_WIDTH = 3
-BASIC_PROJECTILE_HEIGHT = 5
+BASIC_PROJECTILE_HEIGHT = 7
 
 LINE_WIDTH = 2
 
@@ -19,12 +19,12 @@ class BasicProjectileCharacter(Character):
                                 self._color,
                                 self._polygon,
                                 LINE_WIDTH)
-            print("Drawing: " + str(self._polygon))
+            # print("Drawing: " + str(self._polygon))
 
     def move(self, new_x, new_y, heading=0):
         Character.move(self, new_x, new_y, heading)
 
-        print("Animating: " + str(new_x) + ", " + str(new_y))
+        # print("Animating: " + str(new_x) + ", " + str(new_y))
 
         # Cannon of the tank - we will assume 0 degrees is to the right, and center the vertex of the cannon at
         #  the middle of the turret

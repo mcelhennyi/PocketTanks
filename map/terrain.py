@@ -90,7 +90,7 @@ class Terrain:
 
         # We made it here, the thing is still in the map
         if self._terrain[location[X]] <= location[Y]:
-            print("INTERSECT WITH GROUND: " + str(self._terrain[location[X]]) + " " + str(location[Y]))
+            # print("INTERSECT WITH GROUND: " + str(self._terrain[location[X]]) + " " + str(location[Y]))
             # Terrain is over or equal to height of projectile at this X location, we intersect
             return True
         else:
