@@ -2,6 +2,8 @@ import random
 
 import pygame
 
+from agents import ActionEnum
+from agents.dumb_agent import DumbAgent
 from map.score_board import ScoreBoard
 from sprites import BLUE, RED, GREEN, InvalidMoveException, BLACK
 from sprites.tank import Tank
@@ -25,6 +27,8 @@ class App:
         self._game_over = False
 
         self._player_1_active = True
+
+        self._player_2 = DumbAgent()
 
     def on_init(self):
         pygame.init()
@@ -75,56 +79,57 @@ class App:
 
     def on_event(self, event):
         try:
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
                 self._running = False
+                print("Game over, you pressed quit.")
 
-            elif event.type == pygame.KEYDOWN:
+            else:
                 if not self._game_over:
-                    # MOVE TANK LEFT
-                    if event.key == pygame.K_LEFT:
-                        self._tank1.move_left()
 
-                    # MOVE TANK RIGHT
-                    elif event.key == pygame.K_RIGHT:
-                        self._tank1.move_right()
+                    if self._player_1_active:
+                        # --------------- #
+                        # Player 1's turn #
+                        # --------------- #
+                        if event.type == pygame.KEYDOWN:
+                            # MOVE TANK LEFT
+                            if event.key == pygame.K_LEFT:
+                                self._tank1.move_left()
 
-                    # MOVE Turret UP
-                    elif event.key == pygame.K_UP:
-                        self._tank1.increase_angle()
+                            # MOVE TANK RIGHT
+                            elif event.key == pygame.K_RIGHT:
+                                self._tank1.move_right()
 
-                    # MOVE Turret DOWN
-                    elif event.key == pygame.K_DOWN:
-                        self._tank1.decrease_angle()
+                            # MOVE Turret UP
+                            elif event.key == pygame.K_UP:
+                                self._tank1.increase_angle()
 
-                    # MOVE power UP
-                    elif event.key == pygame.K_EQUALS:
-                        self._tank1.increase_power()
+                            # MOVE Turret DOWN
+                            elif event.key == pygame.K_DOWN:
+                                self._tank1.decrease_angle()
 
-                    # MOVE power DOWN
-                    elif event.key == pygame.K_MINUS:
-                        self._tank1.decrease_power()
+                            # MOVE power UP
+                            elif event.key == pygame.K_EQUALS:
+                                self._tank1.increase_power()
 
-                    # Fire
-                    elif event.key == pygame.K_f:
-                        self._tank1.fire()
+                            # MOVE power DOWN
+                            elif event.key == pygame.K_MINUS:
+                                self._tank1.decrease_power()
 
-                    # Increase weapon choice
-                    elif event.key == pygame.K_PERIOD:
-                        self._tank1.load_next_weapon()
+                            # Fire
+                            elif event.key == pygame.K_f:
+                                self._tank1.fire()
 
-                    # Decrease weapon choice
-                    elif event.key == pygame.K_COMMA:
-                        self._tank1.load_previous_weapon()
+                            # Increase weapon choice
+                            elif event.key == pygame.K_PERIOD:
+                                self._tank1.load_next_weapon()
 
-                    else:
-                        # print("You pressed: " + str(event.key))
-                        pass
-                else:
-                    print("Game over, restart game to play again.")
+                            # Decrease weapon choice
+                            elif event.key == pygame.K_COMMA:
+                                self._tank1.load_previous_weapon()
 
-                if event.key == pygame.K_q:
-                    print("Game over, you pressed quit.")
-                    self._running = False
+                            else:
+                                # print("You pressed: " + str(event.key))
+                                pass
 
         except InvalidMoveException as e:
             print('Whoops!')
@@ -133,10 +138,69 @@ class App:
             print('Whoops!')
             print(e)
 
+    def _handle_agents(self):
+
+        """
+            - Tank 1 location
+            - Tank 1 health
+            - Tank 1 Power
+            - Tank 1 Angle
+            - Tank 2 location
+            - Tank 2 health
+            - Tank 2 Power
+            - Tank 2 Angle
+        """
+
+        state = [
+            # Tank 1
+            self._tank1.get_location(),
+            self._tank1.get_health(),
+            self._tank1.get_power(),
+            self._tank1.get_angle(),
+
+            # Tank 2
+            self._tank2.get_location(),
+            self._tank2.get_health(),
+            self._tank2.get_power(),
+            self._tank2.get_angle(),
+        ]
+
+        if not self._player_1_active:
+            if not self._tank2.is_animating():
+                # --------------- #
+                # Player 2's turn #
+                # --------------- #
+                action = self._player_2.act(state)
+                if action == ActionEnum.LEFT:
+                    print("Player 2: Moves Left.")
+                    self._tank2.move_left()
+                elif action == ActionEnum.RIGHT:
+                    print("Player 2: Moves Right.")
+                    self._tank2.move_right()
+                elif action == ActionEnum.INC_PWR:
+                    print("Player 2: Increases gun power.")
+                    self._tank2.increase_power()
+                elif action == ActionEnum.DEC_PWR:
+                    print("Player 2: Decreases gun power.")
+                    self._tank2.decrease_power()
+                elif action == ActionEnum.INC_ANG:
+                    print("Player 2: Increases gun angle.")
+                    self._tank2.increase_angle()
+                elif action == ActionEnum.DEC_ANG:
+                    print("Player 2: Decreases gun angle.")
+                    self._tank2.decrease_angle()
+                elif action == ActionEnum.FIRE:
+                    print("Player 2: Fires!")
+                    self._tank2.fire()
+
     def _show_damage(self, damaged_name, damage_amount):
         self._score_board.damage_display(damaged_name, damage_amount)
 
-    def _switch_player(self):
+    def _switch_player(self, impact_location):
+        if not self._player_1_active:
+            # Tell the person who shot, where the impact landed
+            self._player_2.last_impact(impact_location)
+
         self._player_1_active = not self._player_1_active
         self._score_board.switch_active_player(self._tank1 if self._player_1_active else self._tank2)
 
@@ -188,6 +252,7 @@ class App:
             elapsed_time = pygame.time.get_ticks() - last_time
             for event in pygame.event.get():
                 self.on_event(event)
+            self._handle_agents()
             self.on_loop(elapsed_time)
             self.on_render()
         self.on_cleanup()

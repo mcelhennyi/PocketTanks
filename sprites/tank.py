@@ -36,7 +36,7 @@ class Tank(Sprite):
         self._name = name
 
         # Gun attributes
-        self._gun_angle = MAX_ANGLE/4
+        self._gun_angle = MAX_ANGLE/4 if color == BLUE else MAX_ANGLE * 3/4
         self._gun_power = MAX_POWER/2
 
         # Weapons
@@ -46,6 +46,8 @@ class Tank(Sprite):
         # Animation tracking
         self._is_animating = False
 
+    def is_animating(self):
+        return self._is_animating
 
     def get_location(self):
         return self._location
@@ -180,7 +182,7 @@ class Tank(Sprite):
     def increase_power(self):
         if not self._is_animating:
             if self._gun_power < MAX_POWER:
-                print("more- power: " + str(self._gun_power))
+                # print("more- power: " + str(self._gun_power))
                 self._gun_power += 1
             else:
                 # invalid move
@@ -194,7 +196,7 @@ class Tank(Sprite):
     def decrease_power(self):
         if not self._is_animating:
             if self._gun_power > MIN_POWER:
-                print("less power: " + str(self._gun_power))
+                # print("less power: " + str(self._gun_power))
                 self._gun_power -= 1
             else:
                 # invalid move
@@ -236,7 +238,7 @@ class Tank(Sprite):
     def _step_animation(self, elapsed_time):
         pass
 
-    def _impact_callback(self):
+    def _impact_callback(self, impact_location):
         self._is_animating = False
         self.load_next_weapon()
-        self._switch_player_callback()
+        self._switch_player_callback(impact_location)

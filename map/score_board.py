@@ -47,7 +47,19 @@ class ScoreBoard(Sprite):
 
         self._tank1_moves = self._font.render('Moves', False, BLUE)
         self._tank1_moves_location = [2, 0]
-        self._tank1_moves_location[Y] = self._weapon_1_label_location[Y] + 80
+        self._tank1_moves_location[Y] = self._weapon_2_label_location[Y] + 80
+
+        self._tank2_power = self._font.render('Tank power: ', False, BLUE)
+        self._tank2_power_location = [self._dimensions[X]-200, 0]
+        self._tank2_power_location[Y] = self._weapon_2_label_location[Y] + 40
+
+        self._tank2_angle = self._font.render('Tank angle: ', False, BLUE)
+        self._tank2_angle_location = [self._dimensions[X]-200, 0]
+        self._tank2_angle_location[Y] = self._weapon_2_label_location[Y] + 60
+
+        self._tank2_moves = self._font.render('Moves', False, BLUE)
+        self._tank2_moves_location = [self._dimensions[X]-200, 0]
+        self._tank2_moves_location[Y] = self._weapon_2_label_location[Y] + 80
 
         # Game over text
         self._game_over_label = self._font.render('Game over', False, RED)
@@ -80,6 +92,11 @@ class ScoreBoard(Sprite):
         self._tank1_power = self._font.render('Power: ' + str(self._tank1.get_power()) + " (- or +)", False, self._tank1.get_color())
         self._tank1_angle = self._font.render('Angle: ' + str(self._tank1.get_angle()) + " (down or up)", False, self._tank1.get_color())
         self._tank1_moves = self._font.render('Moves: ' + str(self._tank1.get_move_count()) + " (left or right)", False, self._tank1.get_color())
+
+        # Display tank 2 data
+        self._tank2_power = self._font.render('Power: ' + str(self._tank2.get_power()), False, self._tank2.get_color())
+        self._tank2_angle = self._font.render('Angle: ' + str(self._tank2.get_angle()), False, self._tank2.get_color())
+        self._tank2_moves = self._font.render('Moves: ' + str(self._tank2.get_move_count()), False, self._tank2.get_color())
 
     def end_game(self, winner_tank):
         self._game_over = True
@@ -118,6 +135,10 @@ class ScoreBoard(Sprite):
             surface.blit(self._tank1_power, self._tank1_power_location)
             surface.blit(self._tank1_angle, self._tank1_angle_location)
             surface.blit(self._tank1_moves, self._tank1_moves_location)
+
+            surface.blit(self._tank2_power, self._tank2_power_location)
+            surface.blit(self._tank2_angle, self._tank2_angle_location)
+            surface.blit(self._tank2_moves, self._tank2_moves_location)
 
             # Display damage count down
             if self._damage_countdown > 0:

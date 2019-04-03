@@ -101,14 +101,14 @@ class BaseWeapon(Sprite):
             else:
                 # Animate the impact
                 self._done = True
-                self._impact_callback()
+                self._impact_callback(self._location)
         else:
             self._is_animating = False
 
     def fire(self, angle, power, from_location, impact_callback):
         if not self._is_animating:
             if not self._fire:
-                print("fire!!!!!")
+                # print("fire!!!!!")
                 # Initiate fire sequence
                 self._fire = True
                 self._is_animating = True
