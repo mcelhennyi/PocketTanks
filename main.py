@@ -28,12 +28,15 @@ class App:
 
         self._player_1_active = True
 
-        self._player_2 = DumbAgent()
+        self._player_2 = None
+
+        self._restart = False
 
     def on_init(self):
         pygame.init()
         self._display_surf = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
         self._running = True
+        self._restart = False
 
         # Generate terrain
         self._terrain = Terrain(self.size, color=GREEN)
@@ -75,6 +78,8 @@ class App:
         self._score_board = ScoreBoard(self.size, self._terrain, self._tank1, self._tank2)
         self._score_board.switch_active_player(self._tank1)
 
+        self._player_2 = DumbAgent()
+
         return True
 
     def on_event(self, event):
@@ -82,6 +87,11 @@ class App:
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
                 self._running = False
                 print("Game over, you pressed quit.")
+
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                self._restart = True
+                self._running = False
+                print("Game restarted.")
 
             else:
                 if not self._game_over:
@@ -241,21 +251,29 @@ class App:
         pygame.display.update()
 
     def on_cleanup(self):
-        pygame.quit()
+        # pygame.quit()
+        pass
 
     def on_execute(self):
-        if not self.on_init():
-            self._running = False
+        # Allow a game to restart
+        while True:
+            if not self.on_init():
+                self._running = False
 
-        last_time = pygame.time.get_ticks()
-        while self._running:
-            elapsed_time = pygame.time.get_ticks() - last_time
-            for event in pygame.event.get():
-                self.on_event(event)
-            self._handle_agents()
-            self.on_loop(elapsed_time)
-            self.on_render()
-        self.on_cleanup()
+            # Run the main game loop
+            last_time = pygame.time.get_ticks()
+            while self._running:
+                elapsed_time = pygame.time.get_ticks() - last_time
+                for event in pygame.event.get():
+                    self.on_event(event)
+                self._handle_agents()
+                self.on_loop(elapsed_time)
+                self.on_render()
+            self.on_cleanup()
+
+            if not self._restart:
+                pygame.quit()
+                break
 
 
 if __name__ == "__main__":
