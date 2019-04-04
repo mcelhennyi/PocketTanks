@@ -11,6 +11,8 @@ from sprites.characters.projectile import BasicProjectileCharacter
 from sprites.tank import Tank
 
 GRAVITY = -9.8
+# TODO: This causes an accuracy loss...we need to skip rendering or something instead
+TIME_REDUCTION_FACTOR = 1  # Speed up the simulation... doesnt work as expected ^
 
 
 class BaseWeapon(Sprite):
@@ -77,22 +79,22 @@ class BaseWeapon(Sprite):
                         self._distance_to_target_at_impact = self._distance(self._source_tank.get_location())
                         self._damage_delt = (self._damage_radius - self._distance_to_target_at_impact) * self._damage_multiplier
                         self._source_tank.damage(self._damage_delt)
-                        print("hit yourself, damage: " + str(self._damage_delt))
+                        # print("hit yourself, damage: " + str(self._damage_delt))
                         self._damage_delt *= -1  # Make damage_delt that we remember (-) if its on ourselves
 
                     elif self._hit_enemy():
                         # We hit the ground
                         self._impact = True
                         self._distance_to_target_at_impact = self._distance(self._target_tank.get_location())
-                        print("dist when calced: " + str(self._distance_to_target_at_impact))
+                        # print("dist when calced: " + str(self._distance_to_target_at_impact))
                         self._damage_delt = (self._damage_radius - self._distance_to_target_at_impact) * self._damage_multiplier
                         self._target_tank.damage(self._damage_delt)
-                        print("hit enemy, damage: " + str(self._damage_delt))
+                        # print("hit enemy, damage: " + str(self._damage_delt))
 
                     elif self._hit_ground():
                         # BOOO you missed
                         self._distance_to_target_at_impact = self._distance(self._target_tank.get_location())
-                        print("dist when calced: " + str(self._distance_to_target_at_impact))
+                        # print("dist when calced: " + str(self._distance_to_target_at_impact))
                         self._impact = True
                         # print("hit ground")
 
@@ -184,11 +186,8 @@ class BaseWeapon(Sprite):
         return self._terrain.intersects_terrain(self._location)
 
     def _step_flight(self, elapsed_time):
-        # Adjust all the times to scale it back
-        ts = 0.00001
-
         # Save of the simulated distance
-        self._elapsed_total_time += (elapsed_time / 1000000.0)  # Elapsed comes in millis
+        self._elapsed_total_time += (elapsed_time / (1000000.0/TIME_REDUCTION_FACTOR))  # Elapsed comes in millis
 
         # velocities velocities
         ux = self._power * cos(self._angle*math.pi/180.0)  # X velocity doesnt change

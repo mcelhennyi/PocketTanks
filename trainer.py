@@ -14,8 +14,8 @@ n_episodes = 200
 save_period = 50  # Saves off every n episodes' model
 batch_size = 32  # multiples of 2
 
-state_size = 8
-action_size = 7
+state_size = 10
+action_size = 5  # 7 if we want to move, not doing that for now
 
 output_dir = 'models/'
 
@@ -31,7 +31,7 @@ class Handler:
 
     def callback(self, next_state, reward, game_over):
         with self.lock:
-            print("SET TRUE")
+            # print("SET TRUE")
             self.callback_triggered = True
 
             self.next_state = next_state
@@ -42,7 +42,7 @@ class Handler:
         while True:
             with self.lock:
                 if self.callback_triggered:
-                    print("Next State received!")
+                    # print("Next State received!")
                     self.callback_triggered = False
                     break
 
@@ -77,20 +77,22 @@ for e in range(n_episodes): # iterate over new episodes of the game
     game_over = False
     print("Reset. Starting game " + str(e))
 
+    time_start = time.time()
+
     while not game_over:
 
-        print("**********************************************")
+        # print("**********************************************")
         print("****************** NEW ROUND *****************")
-        print("**********************************************")
+        # print("**********************************************")
         # Make our agent act
         action = agent.act(state)
         print("queue action: " + str(action))
         game.queue_ml_action(action)  # Sends the 'step' commanad
 
         # Get the next state, etc from the action
-        print("wait for next state")
+        # print("wait for next state")
         next_state, reward, game_over = handler.wait_for_callback()
-        print("handle next state")
+        # print("handle next state")
 
         # Remember the action
         next_state = np.reshape(next_state, [1, state_size])
@@ -105,6 +107,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
     print("episode: {}/{}, score: {}, e: {:.2}"  # print the episode's score and agent's epsilon
           .format(e, n_episodes, time, agent.get_epsilon()))
 
+    game_end = time.time()
+
     # Train the agent off the game we just played
     if len(agent.get_memory()) > batch_size:
         agent.replay(batch_size)
@@ -112,3 +116,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
     # Save off every 50 episodes
     if e % save_period == 0:
         agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".hdf5")
+
+    train_end = time.time()
+
+    print("Playing took: " + str((int((game_end-time_start) / 60 * 100)) / 100) + " minutes.")
+    print("Training took: " + str((int((train_end-game_end) / 60 * 100)) / 100) + " minutes.")

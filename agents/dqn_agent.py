@@ -1,3 +1,4 @@
+import os
 import random
 
 from agents import BaseAgent
@@ -9,7 +10,7 @@ import numpy as np
 
 
 class DqnAgent(BaseAgent):
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_size, action_size, load_weights=False):
         BaseAgent.__init__(self)
 
         self._state_size = state_size
@@ -24,6 +25,16 @@ class DqnAgent(BaseAgent):
         self._model = None
 
         self._build_model()
+
+        # Load up known weights
+        max_file_number = ''
+        if load_weights:
+            for file in os.listdir('/models'):
+                file_without_ending = file.split('.')[0]
+                file_number = file_without_ending.split('_')[1]
+                if int(file_number) > int(max_file_number):
+                    max_file_number = file_number
+            self.load(os.path.join('models', 'weights_' + max_file_number + '.hdf5'))
 
     def _build_model(self):
         # neural net to approximate Q-value function:

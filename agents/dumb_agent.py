@@ -36,17 +36,17 @@ class DumbAgent(BaseAgent):
 
         if self._first_shot:
             # If its our first shot, lets randomly guess at the location to shoot at
-            self._target_pwr, self._target_ang = self._generate_first_shot(state[StateEnum.TANK1_LOCATION])
+            self._target_pwr, self._target_ang = self._generate_first_shot([state[StateEnum.TANK1_LOCATION_X], state[StateEnum.TANK1_LOCATION_Y]])
         else:
             # This is second and onward shot, let slowly get closer to the target tank to increase the damage
 
             # Calculate the distance
             if not self._ready_to_fire:
-                if self._last_impact[X] > state[StateEnum.TANK1_LOCATION][X]:
+                if self._last_impact[X] > state[StateEnum.TANK1_LOCATION_X]:
                     # We impacted to the right, increase power and try again
                     self._target_pwr += 1 * random.randint(1, int(self._exploration_value))
                     self._ready_to_fire = True
-                elif self._last_impact[X] < state[StateEnum.TANK1_LOCATION][X]:
+                elif self._last_impact[X] < state[StateEnum.TANK1_LOCATION_X]:
                     # We impacted to the right, increase power and try again
                     self._target_pwr -= 1 * random.randint(1, int(self._exploration_value))
                     self._ready_to_fire = True
@@ -69,7 +69,7 @@ class DumbAgent(BaseAgent):
             self._last_shot_ang = self._target_ang
             self._ready_to_fire = False
 
-        print("Dumb Agent Act: " + str(action))
+        # print("Dumb Agent Act: " + str(action))
 
         return action
 

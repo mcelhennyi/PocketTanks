@@ -8,7 +8,7 @@ MOVE_COUNT_MAX = 100
 
 MAX_ANGLE = 180
 MIN_ANGLE = 0
-MAX_POWER = 100
+MAX_POWER = 150
 MIN_POWER = 0
 
 LEFT = 0
@@ -91,7 +91,8 @@ class Tank(Sprite):
         else:
             self._health = 0
 
-        print(self._name + ": Ouch!, I've been damaged by " + str(damage_value) + ", my new health is: " + str(self._health))
+        if damage_value > 0:
+            print(self._name + ": Ouch!, I've been damaged by " + str(damage_value) + ", my new health is: " + str(self._health))
 
     # Render functions for animations
     def update(self, elapsed_time):

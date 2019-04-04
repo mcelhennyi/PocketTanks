@@ -25,26 +25,30 @@ Available Actions:
 
 
 class ActionEnum:
-    LEFT = 0
-    RIGHT = 1
-    INC_ANG = 2
-    DEC_ANG = 3
-    INC_PWR = 4
-    DEC_PWR = 5
-    FIRE = 6
+    INC_ANG = 0
+    DEC_ANG = 1
+    INC_PWR = 2
+    DEC_PWR = 3
+    FIRE = 4
+
+    # Hidden from AI for now
+    LEFT = 5
+    RIGHT = 6
 
 
 class StateEnum:
 
-    TANK1_LOCATION = 0
-    TANK1_HEALTH = 1
-    TANK1_POWER = 2
-    TANK1_ANGLE = 3
+    TANK1_LOCATION_X = 0
+    TANK1_LOCATION_Y = 1
+    TANK1_HEALTH = 2
+    TANK1_POWER = 3
+    TANK1_ANGLE = 4
 
-    TANK2_LOCATION = 4
-    TANK2_HEALTH = 5
-    TANK2_POWER = 6
-    TANK2_ANGLE = 7
+    TANK2_LOCATION_X = 5
+    TANK2_LOCATION_Y = 6
+    TANK2_HEALTH = 7
+    TANK2_POWER = 8
+    TANK2_ANGLE = 9
 
 
 class BaseAgent:
