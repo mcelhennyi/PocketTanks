@@ -67,6 +67,11 @@ agent = DqnAgent(state_size, action_size)
 # Let the game start up
 time.sleep(5)
 
+# Track some times
+last_play_time = 0
+last_train_time = 0
+
+
 # Play n_episodes count games
 for e in range(n_episodes): # iterate over new episodes of the game
     # Reset the state of the game with a restart, wait for it to take
@@ -78,6 +83,9 @@ for e in range(n_episodes): # iterate over new episodes of the game
     print("Reset. Starting game " + str(e))
 
     time_start = time.time()
+
+    game.show_message("Game " + str(e) + " of " + str(n_episodes) + ",  LPT: " +
+                      str(last_play_time) + ", LTT: " + str(last_train_time))
 
     while not game_over:
 
@@ -104,8 +112,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
         if game_over:
             print("GAME OVER!!!!!!")
 
-    print("episode: {}/{}, score: {}, e: {:.2}"  # print the episode's score and agent's epsilon
-          .format(e, n_episodes, time, agent.get_epsilon()))
+    print("episode: {}/{}, e: {:.2}"  # print the episode's score and agent's epsilon
+          .format(e, n_episodes, agent.get_epsilon()))
 
     game_end = time.time()
 
@@ -119,5 +127,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
 
     train_end = time.time()
 
-    print("Playing took: " + str((int((game_end-time_start) / 60 * 100)) / 100) + " minutes.")
-    print("Training took: " + str((int((train_end-game_end) / 60 * 100)) / 100) + " minutes.")
+    last_play_time = (int((game_end-time_start) / 60 * 100)) / 100
+    last_train_time = (int((train_end-game_end) / 60 * 100)) / 100
+
+    print("Playing took: " + str(last_play_time) + " minutes.")
+    print("Training took: " + str(last_train_time) + " minutes.")

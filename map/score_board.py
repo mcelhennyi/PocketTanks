@@ -81,6 +81,11 @@ class ScoreBoard(Sprite):
         self._active_player_countdown = 0
         self._damage_countdown = 0
 
+        # Message to show
+        self._ext_message = None
+        self._ext_message_label = self._font.render('', False, BLUE)
+        self._ext_message_label_location = [0, self._dimensions[Y] - 50]
+
     def update(self):
         self._weapon_1_label = self._font.render('Weapon: ' + self._tank1.get_current_weapon_name() + " (< or >)", False, self._tank1.get_color())
         self._weapon_2_label = self._font.render('Weapon: ' + self._tank2.get_current_weapon_name(), False, self._tank2.get_color())
@@ -98,6 +103,10 @@ class ScoreBoard(Sprite):
         self._tank2_angle = self._font.render('Angle: ' + str(self._tank2.get_angle()), False, self._tank2.get_color())
         self._tank2_moves = self._font.render('Moves: ' + str(self._tank2.get_move_count()), False, self._tank2.get_color())
 
+        # Show a message
+        if self._ext_message != "":
+            self._ext_message_label = self._font.render(self._ext_message, False, BLUE)
+
     def end_game(self, winner_tank):
         self._game_over = True
         self._game_over_label = self._font.render('Game over: ' + winner_tank.get_name() + " wins.", False, winner_tank.get_color())
@@ -109,6 +118,9 @@ class ScoreBoard(Sprite):
     def switch_active_player(self, active_tank):
         self._active_player_label = self._font.render(active_tank.get_name() + "'s turn.", False, active_tank.get_color())
         self._active_player_countdown = POPUP_COUNTDOWN
+
+    def show_message(self, message):
+        self._ext_message = message
 
     def draw(self, surface):
         # Draw game over if over
@@ -139,6 +151,9 @@ class ScoreBoard(Sprite):
             surface.blit(self._tank2_power, self._tank2_power_location)
             surface.blit(self._tank2_angle, self._tank2_angle_location)
             surface.blit(self._tank2_moves, self._tank2_moves_location)
+
+            # Show message
+            surface.blit(self._ext_message_label, self._ext_message_label_location)
 
             # Display damage count down
             if self._damage_countdown > 0:

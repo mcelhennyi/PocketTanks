@@ -439,6 +439,9 @@ class App:
 
         pygame.display.update()
 
+    def show_message(self, message):
+        self._score_board.show_message(message)
+
     def _handle_action_taken(self, no_reward=False):
         # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
         reward = NOMINAL_REWARD/4  # A nominal reward amount
