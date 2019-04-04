@@ -1,4 +1,6 @@
 import random
+import threading
+import time
 
 import pygame
 
@@ -39,9 +41,12 @@ class App:
         self._training_mode = training_mode
         self._ml_step_callback = ml_step_callback
         self._ml_next_action = None
-        self._step_simulation = True
+        self._step_simulation = False
         self._action_taken = False
         self._reward_from_ml_shot = 0
+        self.start_time = time.time()
+
+        self._lock = threading.Lock()
 
     def on_init(self):
         pygame.init()
@@ -50,11 +55,6 @@ class App:
         self._restart = False
         self._game_over = False
         self._player_1_active = True
-
-        # Re init Ml stuff
-        self._step_simulation = True
-        self._action_taken = False
-        self._reward_from_ml_shot = 0
 
         # Generate terrain
         self._terrain = Terrain(self.size, color=GREEN)
@@ -100,7 +100,9 @@ class App:
 
         # Init ML stuff
         self._ml_next_action = None
-        self._step_simulation = True
+        self._step_simulation = False
+        self._action_taken = False
+        self._reward_from_ml_shot = 0
 
         return True
 
@@ -205,6 +207,12 @@ class App:
         # Get the current state
         state = self.get_game_state()
 
+        # if time.time() > self.start_time + 10:
+        #     print("HANLDE AGENTSSSSSSSS")
+        #     print(self._player_1_active)
+        #     print(self._training_mode)
+        #     print( self._step_simulation)
+
         if not self._player_1_active:
             if not self._tank2.is_animating():
                 # --------------- #
@@ -263,37 +271,45 @@ class App:
                             print("Q-Learning Agent: Moves Left.")
                             self._tank1.move_left()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.RIGHT:
                             print("Q-Learning Agent: Moves Right.")
                             self._tank1.move_right()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.INC_PWR:
                             print("Q-Learning Agent: Increases gun power.")
                             self._tank1.increase_power()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.DEC_PWR:
                             print("Q-Learning Agent: Decreases gun power.")
                             self._tank1.decrease_power()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.INC_ANG:
                             print("Q-Learning Agent: Increases gun angle.")
                             self._tank1.increase_angle()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.DEC_ANG:
                             print("Q-Learning Agent: Decreases gun angle.")
                             self._tank1.decrease_angle()
                             self._action_taken = True
+                            self._step_simulation = False
 
                         elif self._ml_next_action == ActionEnum.FIRE:
                             print("Q-Learning Agent: Fires!")
                             self._tank1.fire()
                             self._step_simulation = False
                             self._action_taken = False  # Tells the action taken callback to not fire beciase an impact callback will fire
+                        else:
+                            print("Unknown action: " + str(self._ml_next_action))
 
     def queue_ml_action(self, action):
         """
@@ -302,10 +318,13 @@ class App:
         :param action:
         :return:
         """
-        self._ml_next_action = action
+        with self._lock:
+            self._ml_next_action = action
+            self._step_simulation = True
+            self._action_taken = False
 
-    def step(self):
-        self._step_simulation = True
+    # def step(self):
+    #     self._step_simulation = True
 
     def _show_damage(self, damaged_name, damage_amount):
         self._score_board.damage_display(damaged_name, damage_amount)
@@ -351,7 +370,9 @@ class App:
             reward = self._calculate_reward(damage, distance, is_enemy=True)
             reward += self._reward_from_ml_shot
             print("REWARD: " + str(reward))
-            # self._ml_step_callback(state_now, reward, self._game_over)
+            if self._training_mode:
+                print("Player two fired, handle callback")
+                self._ml_step_callback(state_now, reward, self._game_over)
             self._reward_from_ml_shot = 0  # Reset this for consistentcy
         else:
             # Calculate the reward from ML' sshot
@@ -365,17 +386,13 @@ class App:
 
     # Called after handle agents
     def on_loop(self, elapsed_time):
-        # Print out game status
-        if not self._tank1.is_alive() or not self._tank2.is_alive():
-            self._game_over = True
+        # Update Tank1
+        self._tank1.update(elapsed_time)
 
-        if not self._game_over:
-            # Update Tank1
-            self._tank1.update(elapsed_time)
-
-            # update tank2
-            self._tank2.update(elapsed_time)
-        else:
+        # update tank2
+        self._tank2.update(elapsed_time)
+        
+        if self._game_over:
             # send signal to display result
             self._score_board.end_game(self._tank1 if self._tank1.is_alive() else self._tank2)
 
@@ -408,7 +425,9 @@ class App:
         # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
         reward = NOMINAL_REWARD  # A nominal reward amount
         state_now = self.get_game_state()
-        self._ml_step_callback(state_now, reward, self._game_over)
+        if self._training_mode:
+            print("HANDLE ACTION TAKEN")
+            self._ml_step_callback(state_now, reward, self._game_over)
         self._action_taken = False
 
     def on_cleanup(self):
@@ -419,25 +438,37 @@ class App:
         # Allow a game to restart
         while True:
             if not self.on_init():
+                print("ON INIT")
                 self._running = False
+                break
+            else:
+                # successful init
+                print("Init handl action")
+                self._handle_action_taken()
 
             # Run the main game loop
+            print("starting game loop")
             last_time = pygame.time.get_ticks()
             while self._running:
-                elapsed_time = pygame.time.get_ticks() - last_time
-                for event in pygame.event.get():
-                    self.on_event(event)
-                self._handle_agents()
-                self.on_loop(elapsed_time)
-                self.on_render()
+                with self._lock:
+                    if self._action_taken:
+                        print("loop handle")
+                        self._handle_action_taken()
 
-                if self._action_taken:
-                    self._handle_action_taken()
+                    elapsed_time = pygame.time.get_ticks() - last_time
+                    for event in pygame.event.get():
+                        self.on_event(event)
+                    self._handle_agents()
+                    self.on_loop(elapsed_time)
+                    self.on_render()
+
+            print("Game loop over: " + str(self._running))
             self.on_cleanup()
 
             if not self._restart:
                 pygame.quit()
                 break
+
 
 
 if __name__ == "__main__":

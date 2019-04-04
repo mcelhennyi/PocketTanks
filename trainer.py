@@ -31,6 +31,7 @@ class Handler:
 
     def callback(self, next_state, reward, game_over):
         with self.lock:
+            print("SET TRUE")
             self.callback_triggered = True
 
             self.next_state = next_state
@@ -41,9 +42,11 @@ class Handler:
         while True:
             with self.lock:
                 if self.callback_triggered:
+                    print("Next State received!")
+                    self.callback_triggered = False
                     break
-                else:
-                    time.sleep(0.0001)
+
+            time.sleep(0.0001)
 
         return self.next_state, self.reward, self.game_over
 
@@ -61,21 +64,33 @@ thread.start()
 # Create the agent
 agent = DqnAgent(state_size, action_size)
 
+# Let the game start up
+time.sleep(5)
+
 # Play n_episodes count games
 for e in range(n_episodes): # iterate over new episodes of the game
     # Reset the state of the game with a restart, wait for it to take
+    print("Resetting game state...")
     game.queue_ml_action(-1)  # -1 restarts, -2 quits
     _ = handler.wait_for_callback()
     state = np.reshape(game.get_game_state(), [1, state_size])
     game_over = False
+    print("Reset. Starting game " + str(e))
 
     while not game_over:
+
+        print("**********************************************")
+        print("****************** NEW ROUND *****************")
+        print("**********************************************")
         # Make our agent act
         action = agent.act(state)
-        game.queue_ml_action(action)
+        print("queue action: " + str(action))
+        game.queue_ml_action(action)  # Sends the 'step' commanad
 
         # Get the next state, etc from the action
+        print("wait for next state")
         next_state, reward, game_over = handler.wait_for_callback()
+        print("handle next state")
 
         # Remember the action
         next_state = np.reshape(next_state, [1, state_size])
@@ -83,6 +98,9 @@ for e in range(n_episodes): # iterate over new episodes of the game
 
         # Save the state as next state
         state = next_state
+
+        if game_over:
+            print("GAME OVER!!!!!!")
 
     print("episode: {}/{}, score: {}, e: {:.2}"  # print the episode's score and agent's epsilon
           .format(e, n_episodes, time, agent.get_epsilon()))
