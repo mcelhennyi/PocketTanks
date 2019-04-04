@@ -5,14 +5,17 @@ import pygame
 from agents import ActionEnum
 from agents.dumb_agent import DumbAgent
 from map.score_board import ScoreBoard
-from sprites import BLUE, RED, GREEN, InvalidMoveException, BLACK
+from sprites import BLUE, RED, GREEN, InvalidMoveException, BLACK, X
 from sprites.tank import Tank
 from map.terrain import Terrain, OutOfMapException
 from sprites.weapons.base_weapon import BaseWeapon
 
 
+NOMINAL_REWARD = 100
+
+
 class App:
-    def __init__(self):
+    def __init__(self, training_mode=False, ml_step_callback=None):
         self._running = True
         self._display_surf = None
         self.size = self.width, self.height = 1024, 512
@@ -32,11 +35,26 @@ class App:
 
         self._restart = False
 
+        # Stuff to separtate/allow the ml to train vs user to play
+        self._training_mode = training_mode
+        self._ml_step_callback = ml_step_callback
+        self._ml_next_action = None
+        self._step_simulation = True
+        self._action_taken = False
+        self._reward_from_ml_shot = 0
+
     def on_init(self):
         pygame.init()
         self._display_surf = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
         self._running = True
         self._restart = False
+        self._game_over = False
+        self._player_1_active = True
+
+        # Re init Ml stuff
+        self._step_simulation = True
+        self._action_taken = False
+        self._reward_from_ml_shot = 0
 
         # Generate terrain
         self._terrain = Terrain(self.size, color=GREEN)
@@ -80,6 +98,10 @@ class App:
 
         self._player_2 = DumbAgent()
 
+        # Init ML stuff
+        self._ml_next_action = None
+        self._step_simulation = True
+
         return True
 
     def on_event(self, event):
@@ -96,50 +118,53 @@ class App:
             else:
                 if not self._game_over:
 
+                    # Make sure its player 1's turn
                     if self._player_1_active:
-                        # --------------- #
-                        # Player 1's turn #
-                        # --------------- #
-                        if event.type == pygame.KEYDOWN:
-                            # MOVE TANK LEFT
-                            if event.key == pygame.K_LEFT:
-                                self._tank1.move_left()
+                        # Dont allow the user to intervene when the ML is playinh
+                        if not self._training_mode:
+                            # --------------- #
+                            # Player 1's turn #
+                            # --------------- #
+                            if event.type == pygame.KEYDOWN:
+                                # MOVE TANK LEFT
+                                if event.key == pygame.K_LEFT:
+                                    self._tank1.move_left()
 
-                            # MOVE TANK RIGHT
-                            elif event.key == pygame.K_RIGHT:
-                                self._tank1.move_right()
+                                # MOVE TANK RIGHT
+                                elif event.key == pygame.K_RIGHT:
+                                    self._tank1.move_right()
 
-                            # MOVE Turret UP
-                            elif event.key == pygame.K_UP:
-                                self._tank1.increase_angle()
+                                # MOVE Turret UP
+                                elif event.key == pygame.K_UP:
+                                    self._tank1.increase_angle()
 
-                            # MOVE Turret DOWN
-                            elif event.key == pygame.K_DOWN:
-                                self._tank1.decrease_angle()
+                                # MOVE Turret DOWN
+                                elif event.key == pygame.K_DOWN:
+                                    self._tank1.decrease_angle()
 
-                            # MOVE power UP
-                            elif event.key == pygame.K_EQUALS:
-                                self._tank1.increase_power()
+                                # MOVE power UP
+                                elif event.key == pygame.K_EQUALS:
+                                    self._tank1.increase_power()
 
-                            # MOVE power DOWN
-                            elif event.key == pygame.K_MINUS:
-                                self._tank1.decrease_power()
+                                # MOVE power DOWN
+                                elif event.key == pygame.K_MINUS:
+                                    self._tank1.decrease_power()
 
-                            # Fire
-                            elif event.key == pygame.K_f:
-                                self._tank1.fire()
+                                # Fire
+                                elif event.key == pygame.K_f:
+                                    self._tank1.fire()
 
-                            # Increase weapon choice
-                            elif event.key == pygame.K_PERIOD:
-                                self._tank1.load_next_weapon()
+                                # Increase weapon choice
+                                elif event.key == pygame.K_PERIOD:
+                                    self._tank1.load_next_weapon()
 
-                            # Decrease weapon choice
-                            elif event.key == pygame.K_COMMA:
-                                self._tank1.load_previous_weapon()
+                                # Decrease weapon choice
+                                elif event.key == pygame.K_COMMA:
+                                    self._tank1.load_previous_weapon()
 
-                            else:
-                                # print("You pressed: " + str(event.key))
-                                pass
+                                else:
+                                    # print("You pressed: " + str(event.key))
+                                    pass
 
         except InvalidMoveException as e:
             print('Whoops!')
@@ -148,20 +173,19 @@ class App:
             print('Whoops!')
             print(e)
 
-    def _handle_agents(self):
-
+    def get_game_state(self):
         """
-            - Tank 1 location
-            - Tank 1 health
-            - Tank 1 Power
-            - Tank 1 Angle
-            - Tank 2 location
-            - Tank 2 health
-            - Tank 2 Power
-            - Tank 2 Angle
+           - Tank 1 location
+           - Tank 1 health
+           - Tank 1 Power
+           - Tank 1 Angle
+           - Tank 2 location
+           - Tank 2 health
+           - Tank 2 Power
+           - Tank 2 Angle
         """
 
-        state = [
+        return [
             # Tank 1
             self._tank1.get_location(),
             self._tank1.get_health(),
@@ -175,6 +199,12 @@ class App:
             self._tank2.get_angle(),
         ]
 
+    # Called before on_loop
+    def _handle_agents(self):
+
+        # Get the current state
+        state = self.get_game_state()
+
         if not self._player_1_active:
             if not self._tank2.is_animating():
                 # --------------- #
@@ -184,37 +214,161 @@ class App:
                 if action == ActionEnum.LEFT:
                     print("Player 2: Moves Left.")
                     self._tank2.move_left()
+
                 elif action == ActionEnum.RIGHT:
                     print("Player 2: Moves Right.")
                     self._tank2.move_right()
+
                 elif action == ActionEnum.INC_PWR:
                     print("Player 2: Increases gun power.")
                     self._tank2.increase_power()
+
                 elif action == ActionEnum.DEC_PWR:
                     print("Player 2: Decreases gun power.")
                     self._tank2.decrease_power()
+
                 elif action == ActionEnum.INC_ANG:
                     print("Player 2: Increases gun angle.")
                     self._tank2.increase_angle()
+
                 elif action == ActionEnum.DEC_ANG:
                     print("Player 2: Decreases gun angle.")
                     self._tank2.decrease_angle()
+
                 elif action == ActionEnum.FIRE:
                     print("Player 2: Fires!")
                     self._tank2.fire()
 
+        # ML's turn
+        else:
+
+            # If we are in ML playing mode, lets check for its next command
+            if self._training_mode:
+
+                # Marks beginning of a "Step" to the trainer
+                if self._step_simulation:
+
+                    # Make sure there are no game commands
+                    if self._ml_next_action == -1:
+                        self._restart = True
+                        self._running = False
+                    elif self._ml_next_action == -2:
+                        self._restart = False
+                        self._running = False
+
+                    # No game commands, check for the next move
+                    else:
+                        # Check for the ML's move
+                        if self._ml_next_action == ActionEnum.LEFT:
+                            print("Q-Learning Agent: Moves Left.")
+                            self._tank1.move_left()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.RIGHT:
+                            print("Q-Learning Agent: Moves Right.")
+                            self._tank1.move_right()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.INC_PWR:
+                            print("Q-Learning Agent: Increases gun power.")
+                            self._tank1.increase_power()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.DEC_PWR:
+                            print("Q-Learning Agent: Decreases gun power.")
+                            self._tank1.decrease_power()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.INC_ANG:
+                            print("Q-Learning Agent: Increases gun angle.")
+                            self._tank1.increase_angle()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.DEC_ANG:
+                            print("Q-Learning Agent: Decreases gun angle.")
+                            self._tank1.decrease_angle()
+                            self._action_taken = True
+
+                        elif self._ml_next_action == ActionEnum.FIRE:
+                            print("Q-Learning Agent: Fires!")
+                            self._tank1.fire()
+                            self._step_simulation = False
+                            self._action_taken = False  # Tells the action taken callback to not fire beciase an impact callback will fire
+
+    def queue_ml_action(self, action):
+        """
+        Send -1 for a restart and a -2 to quit
+
+        :param action:
+        :return:
+        """
+        self._ml_next_action = action
+
+    def step(self):
+        self._step_simulation = True
+
     def _show_damage(self, damaged_name, damage_amount):
         self._score_board.damage_display(damaged_name, damage_amount)
 
-    def _switch_player(self, impact_location):
+    def _calculate_reward(self, damage, distance, is_enemy=False):
+        reward = NOMINAL_REWARD
+
+        # Calculate self damage reward
+        if damage < 0:
+            reward = 0.1
+
+        else:
+            # Damage is either nothing (we missed) or we have some damage, create a reward
+            reward += damage  # Max damage is currently 20 pts
+
+        # Therefore max reward at this point is 100 + 20  (We may need to equalize the width of the screen and damage)
+
+        # Multiply the reward by the inverse of the distance normalized, so the closer we get the more reward we give
+        distance_normalized = float(distance) / float(self.size[X])
+        print(distance)
+
+        # limit of this calculation is the width of the game screen times the max reward so 1024 * 120
+        if is_enemy:
+            reward *= distance_normalized
+
+        else:
+            reward *= 1/distance_normalized
+
+        return reward
+
+    def _switch_player(self, impact_location, damage, distance):
+        # Make sure to mark the state of the game before sending a ml step callback reponse
+        if not self._tank1.is_alive() or not self._tank2.is_alive():
+            self._game_over = True
+
         if not self._player_1_active:
             # Tell the person who shot, where the impact landed
             self._player_2.last_impact(impact_location)
 
+            # Our ML Went, then Player 2 went, now lets tell the ML what ended up happening
+            # if self._training_mode:
+            state_now = self.get_game_state()
+            reward = self._calculate_reward(damage, distance, is_enemy=True)
+            reward += self._reward_from_ml_shot
+            print("REWARD: " + str(reward))
+            # self._ml_step_callback(state_now, reward, self._game_over)
+            self._reward_from_ml_shot = 0  # Reset this for consistentcy
+        else:
+            # Calculate the reward from ML' sshot
+            self._reward_from_ml_shot = self._calculate_reward(damage, distance)
+
         self._player_1_active = not self._player_1_active
         self._score_board.switch_active_player(self._tank1 if self._player_1_active else self._tank2)
 
+        self._tank1.stop_animating()
+        self._tank2.stop_animating()
+
+    # Called after handle agents
     def on_loop(self, elapsed_time):
+        # Print out game status
+        if not self._tank1.is_alive() or not self._tank2.is_alive():
+            self._game_over = True
+
         if not self._game_over:
             # Update Tank1
             self._tank1.update(elapsed_time)
@@ -228,7 +382,7 @@ class App:
         # Update Scoreboard
         self._score_board.update()
 
-        # Print out game status
+        # Print out game status - Note this is done again to catch
         if not self._tank1.is_alive() or not self._tank2.is_alive():
             self._game_over = True
 
@@ -250,6 +404,13 @@ class App:
 
         pygame.display.update()
 
+    def _handle_action_taken(self):
+        # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
+        reward = NOMINAL_REWARD  # A nominal reward amount
+        state_now = self.get_game_state()
+        self._ml_step_callback(state_now, reward, self._game_over)
+        self._action_taken = False
+
     def on_cleanup(self):
         # pygame.quit()
         pass
@@ -269,6 +430,9 @@ class App:
                 self._handle_agents()
                 self.on_loop(elapsed_time)
                 self.on_render()
+
+                if self._action_taken:
+                    self._handle_action_taken()
             self.on_cleanup()
 
             if not self._restart:

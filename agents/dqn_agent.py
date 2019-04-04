@@ -8,7 +8,6 @@ from keras.optimizers import Adam
 import numpy as np
 
 
-
 class DqnAgent(BaseAgent):
     def __init__(self, state_size, action_size):
         BaseAgent.__init__(self)
@@ -40,6 +39,12 @@ class DqnAgent(BaseAgent):
         # Compile the model
         self._model.compile(loss='mse', optimizer=Adam(lr=self._learning_rate))
 
+    def get_epsilon(self):
+        return self._epsilon
+
+    def get_memory(self):
+        return self._memory
+
     def act(self, state):
         if np.random.rand() <= self._epsilon:
             # Explore
@@ -51,7 +56,7 @@ class DqnAgent(BaseAgent):
 
     def replay(self, batch_size):
         # Sample randomly from memory
-        minibatch = random.sample(self.memory, batch_size)
+        minibatch = random.sample(self._memory, batch_size)
         for state, action, reward, next_state, done in minibatch:
             # For each memory
             target = reward  # if done (boolean whether game ended or not, i.e., whether final state or not), then target = reward

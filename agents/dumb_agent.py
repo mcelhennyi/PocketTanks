@@ -29,6 +29,9 @@ class DumbAgent(BaseAgent):
         # Lets decay our exploration value with shots
         self._exploration_value *= 0.9
 
+        if self._exploration_value < 1:
+            self._exploration_value = 1
+
     def act(self, state):
 
         if self._first_shot:

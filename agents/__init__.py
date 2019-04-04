@@ -50,10 +50,10 @@ class StateEnum:
 class BaseAgent:
     def __init__(self):
 
-        self.memory = deque(maxlen=2000)
+        self._memory = deque(maxlen=2000)
 
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        self._memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
         pass

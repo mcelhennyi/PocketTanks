@@ -46,6 +46,9 @@ class Tank(Sprite):
         # Animation tracking
         self._is_animating = False
 
+    def stop_animating(self):
+        self._is_animating = False
+
     def is_animating(self):
         return self._is_animating
 
@@ -115,8 +118,8 @@ class Tank(Sprite):
     # --------------------- #
     # Change to next weapon #
     # --------------------- #
-    def load_next_weapon(self):
-        if not self._is_animating:
+    def load_next_weapon(self, force=False):
+        if not self._is_animating or force:
             if self._weapon_selected < len(self._weapons) - 1:
                 self._weapon_selected += 1
         else:
@@ -238,7 +241,6 @@ class Tank(Sprite):
     def _step_animation(self, elapsed_time):
         pass
 
-    def _impact_callback(self, impact_location):
-        self._is_animating = False
-        self.load_next_weapon()
-        self._switch_player_callback(impact_location)
+    def _impact_callback(self, impact_location, damage, distance):
+        self.load_next_weapon(force=True)
+        self._switch_player_callback(impact_location, damage, distance)

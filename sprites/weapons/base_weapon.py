@@ -32,6 +32,8 @@ class BaseWeapon(Sprite):
         self._character = None
         self._damage_radius = 40
         self._damage_multiplier = 0.5  # This means, that at most, there can be 20 pts damage
+        self._damage_delt = 0
+        self._distance_to_target_at_impact = 0
 
         # Firing attributes
         self._angle = 0
@@ -72,21 +74,25 @@ class BaseWeapon(Sprite):
                         # OUCH! You shot yourself!!!!
                         self._impact = True
                         # print("hit source")
-                        distance = self._distance(self._source_tank.get_location())
-                        damage = (self._damage_radius - distance) * self._damage_multiplier
-                        self._source_tank.damage(damage)
-                        print("hit yourself, damage: " + str(damage))
+                        self._distance_to_target_at_impact = self._distance(self._source_tank.get_location())
+                        self._damage_delt = (self._damage_radius - self._distance_to_target_at_impact) * self._damage_multiplier
+                        self._source_tank.damage(self._damage_delt)
+                        print("hit yourself, damage: " + str(self._damage_delt))
+                        self._damage_delt *= -1  # Make damage_delt that we remember (-) if its on ourselves
 
                     elif self._hit_enemy():
                         # We hit the ground
                         self._impact = True
-                        distance = self._distance(self._target_tank.get_location())
-                        damage = (self._damage_radius - distance) * self._damage_multiplier
-                        self._target_tank.damage(damage)
-                        print("hit enemy, damage: " + str(damage))
+                        self._distance_to_target_at_impact = self._distance(self._target_tank.get_location())
+                        print("dist when calced: " + str(self._distance_to_target_at_impact))
+                        self._damage_delt = (self._damage_radius - self._distance_to_target_at_impact) * self._damage_multiplier
+                        self._target_tank.damage(self._damage_delt)
+                        print("hit enemy, damage: " + str(self._damage_delt))
 
                     elif self._hit_ground():
                         # BOOO you missed
+                        self._distance_to_target_at_impact = self._distance(self._target_tank.get_location())
+                        print("dist when calced: " + str(self._distance_to_target_at_impact))
                         self._impact = True
                         # print("hit ground")
 
@@ -101,7 +107,7 @@ class BaseWeapon(Sprite):
             else:
                 # Animate the impact
                 self._done = True
-                self._impact_callback(self._location)
+                self._impact_callback(self._location, self._damage_delt, self._distance_to_target_at_impact)
         else:
             self._is_animating = False
 
