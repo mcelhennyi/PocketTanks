@@ -367,7 +367,9 @@ class App:
 
         else:
             # if its our shot, we want a gradient of damage from target to landing
-            reward *= 1 - distance_normalized
+            if damage >= 0:
+                # Only add in a distance penalty if we didnt self damage
+                reward *= 1 - distance_normalized
 
         return reward
 

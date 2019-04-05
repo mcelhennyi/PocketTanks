@@ -84,8 +84,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
 
     time_start = time.time()
 
-    game.show_message("Game " + str(e) + " of " + str(n_episodes) + ",  LPT: " +
-                      str(last_play_time) + ", LTT: " + str(last_train_time))
+    game.show_message("Game " + str(e + 1) + " of " + str(n_episodes) + ",  LPT: " +
+                      str(last_play_time) + ", LTT: " + str(last_train_time) + ", epsilon: " + str(agent.get_epsilon()))
 
     while not game_over:
 
@@ -132,3 +132,16 @@ for e in range(n_episodes): # iterate over new episodes of the game
 
     print("Playing took: " + str(last_play_time) + " minutes.")
     print("Training took: " + str(last_train_time) + " minutes.")
+
+# End game
+print("Ending game...")
+game.queue_ml_action(-2)
+print("Ended.")
+
+
+"""
+Notes:
+    - Make the reward for none fire events be based on what the dumb agent would do
+    - 
+
+"""
