@@ -32,33 +32,39 @@ class DumbAgent(BaseAgent):
         if self._exploration_value < 1:
             self._exploration_value = 1
 
-    def act(self, state):
+    def act(self, state, target_offset=0):
+        """
+
+        :param state:
+        :param target_offset: set to 5 to switch between active tank as self
+        :return:
+        """
 
         if self._first_shot:
             # If its our first shot, lets randomly guess at the location to shoot at
-            self._target_pwr, self._target_ang = self._generate_first_shot([state[StateEnum.TANK1_LOCATION_X], state[StateEnum.TANK1_LOCATION_Y]])
+            self._target_pwr, self._target_ang = self._generate_first_shot([state[StateEnum.TANK1_LOCATION_X+target_offset], state[StateEnum.TANK1_LOCATION_Y+target_offset]])
         else:
             # This is second and onward shot, let slowly get closer to the target tank to increase the damage
 
             # Calculate the distance
             if not self._ready_to_fire:
-                if self._last_impact[X] > state[StateEnum.TANK1_LOCATION_X]:
+                if self._last_impact[X] > state[StateEnum.TANK1_LOCATION_X+target_offset]:
                     # We impacted to the right, increase power and try again
                     self._target_pwr += 1 * random.randint(1, int(self._exploration_value))
                     self._ready_to_fire = True
-                elif self._last_impact[X] < state[StateEnum.TANK1_LOCATION_X]:
+                elif self._last_impact[X] < state[StateEnum.TANK1_LOCATION_X+target_offset]:
                     # We impacted to the right, increase power and try again
                     self._target_pwr -= 1 * random.randint(1, int(self._exploration_value))
                     self._ready_to_fire = True
 
         # Return an action - Adjust Power and angle to target values
-        if state[StateEnum.TANK2_POWER] > self._target_pwr:
+        if state[StateEnum.TANK2_POWER-target_offset] > self._target_pwr:
             action = ActionEnum.DEC_PWR
-        elif state[StateEnum.TANK2_POWER] < self._target_pwr:
+        elif state[StateEnum.TANK2_POWER-target_offset] < self._target_pwr:
             action = ActionEnum.INC_PWR
-        elif state[StateEnum.TANK2_ANGLE] > self._target_ang:
+        elif state[StateEnum.TANK2_ANGLE-target_offset] > self._target_ang:
             action = ActionEnum.DEC_ANG
-        elif state[StateEnum.TANK2_ANGLE] < self._target_ang:
+        elif state[StateEnum.TANK2_ANGLE-target_offset] < self._target_ang:
             action = ActionEnum.INC_ANG
         else:
             action = ActionEnum.FIRE

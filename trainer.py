@@ -71,6 +71,8 @@ time.sleep(5)
 last_play_time = 0
 last_train_time = 0
 
+# Track winner count
+winners = {}
 
 # Play n_episodes count games
 for e in range(n_episodes): # iterate over new episodes of the game
@@ -83,18 +85,22 @@ for e in range(n_episodes): # iterate over new episodes of the game
     print("Reset. Starting game " + str(e))
 
     time_start = time.time()
+    msg = "Game " + str(e + 1) + " of " + str(n_episodes) + ",  LPT: " + \
+          str(last_play_time) + ", LTT: " + str(last_train_time) + ", epsilon: " + str(agent.get_epsilon())
+    game.show_message(msg)
+    print(msg)
 
-    game.show_message("Game " + str(e + 1) + " of " + str(n_episodes) + ",  LPT: " +
-                      str(last_play_time) + ", LTT: " + str(last_train_time) + ", epsilon: " + str(agent.get_epsilon()))
+    for winner in winners:
+        print(winner + " has " + str(winners[winner]) + " wins so far.")
 
     while not game_over:
 
         # print("**********************************************")
-        print("****************** NEW ROUND *****************")
+        # print("****************** NEW ROUND *****************")
         # print("**********************************************")
         # Make our agent act
         action = agent.act(state)
-        print("queue action: " + str(action))
+        # print("queue action: " + str(action))
         game.queue_ml_action(action)  # Sends the 'step' commanad
 
         # Get the next state, etc from the action
@@ -110,7 +116,11 @@ for e in range(n_episodes): # iterate over new episodes of the game
         state = next_state
 
         if game_over:
-            print("GAME OVER!!!!!!")
+            print("GAME OVER: " + game.get_winner().get_name() + " wins!")
+            if game.get_winner().get_name() not in winners:
+                winners[game.get_winner().get_name()] = 1
+            else:
+                winners[game.get_winner().get_name()] += 1
 
     print("episode: {}/{}, e: {:.2}"  # print the episode's score and agent's epsilon
           .format(e, n_episodes, agent.get_epsilon()))

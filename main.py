@@ -1,7 +1,9 @@
 import random
 import threading
 import time
+from collections import deque
 
+import numpy
 import pygame
 
 from agents import ActionEnum
@@ -14,10 +16,12 @@ from sprites.weapons.base_weapon import BaseWeapon
 
 
 NOMINAL_REWARD = 100
+RENDER_DELTA_T = 25000
+HEADLESS_DELTA_T = 45000
 
 
 class App:
-    def __init__(self, training_mode=False, ml_step_callback=None):
+    def __init__(self, render=False, training_mode=False, ml_step_callback=None):
         self._running = True
         self._display_surf = None
         self.size = self.width, self.height = 1024, 512
@@ -34,6 +38,7 @@ class App:
         self._player_1_active = True
 
         self._player_2 = None
+        self._player_1_guide = None
 
         self._restart = False
 
@@ -41,10 +46,13 @@ class App:
         self._training_mode = training_mode
         self._ml_step_callback = ml_step_callback
         self._ml_next_action = None
+        self._ml_suggested_next_action = None
         self._step_simulation = False
         self._action_taken = False
         self._reward_from_ml_shot = 0
         self.start_time = time.time()
+
+        self._render_on = render
 
         self._lock = threading.Lock()
 
@@ -97,9 +105,11 @@ class App:
         self._score_board.switch_active_player(self._tank1)
 
         self._player_2 = DumbAgent()
+        self._player_1_guide = DumbAgent()
 
         # Init ML stuff
         self._ml_next_action = None
+        self._ml_suggested_next_action = None
         self._step_simulation = False
         self._action_taken = False
         self._reward_from_ml_shot = 0
@@ -189,7 +199,7 @@ class App:
            - Tank 2 Angle
         """
 
-        return [
+        state = [
             # Tank 1
             self._tank1.get_location()[X],
             self._tank1.get_location()[Y],
@@ -204,6 +214,10 @@ class App:
             self._tank2.get_power(),
             self._tank2.get_angle(),
         ]
+
+        self._ml_suggested_next_action = self._player_1_guide.act(state, target_offset=5)
+
+        return state
 
     # Called before on_loop
     def _handle_agents(self):
@@ -249,7 +263,7 @@ class App:
                         self._tank2.decrease_angle()
 
                     elif action == ActionEnum.FIRE:
-                        print("Player 2: Fires!")
+                        # print("Player 2: Fires!")
                         self._tank2.fire()
                 except InvalidMoveException as e:
                     print('Whoops! Invalid move: ' + str(e))
@@ -313,7 +327,7 @@ class App:
                                     self._step_simulation = False
 
                                 elif self._ml_next_action == ActionEnum.FIRE:
-                                    print("Q-Learning Agent: Fires!")
+                                    # print("Q-Learning Agent: Fires!")
                                     self._tank1.fire()
                                     self._step_simulation = False
                                     self._action_taken = False  # Tells the action taken callback to not fire beciase an impact callback will fire
@@ -389,7 +403,8 @@ class App:
             # reward = self._calculate_reward(damage, distance, is_enemy=True)
             # reward += self._reward_from_ml_shot
             reward = self._reward_from_ml_shot
-            print("REWARD: " + str(reward))
+            if self._render_on:
+                print("REWARD: " + str(reward))
             if self._training_mode:
                 # print("Player two fired, handle callback")
                 self._ml_step_callback(state_now, reward, self._game_over)
@@ -423,6 +438,9 @@ class App:
         if not self._tank1.is_alive() or not self._tank2.is_alive():
             self._game_over = True
 
+    def get_winner(self):
+        return self._tank1 if self._tank1.is_alive() else self._tank2
+
     def on_render(self):
         # Reset screen to black
         self._display_surf.fill(BLACK)
@@ -448,6 +466,12 @@ class App:
         # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
         reward = NOMINAL_REWARD/4  # A nominal reward amount
 
+        if self._ml_suggested_next_action != self._ml_next_action:
+            # If the ML deviates from the guide, fail it
+            reward = 0
+            # print("reward zero, didnt follow guide")
+            # print("guide action: " + str(self._ml_suggested_next_action))
+
         if no_reward:
             # print("NO REWARD")
             reward = 0
@@ -455,7 +479,8 @@ class App:
         state_now = self.get_game_state()
         if self._training_mode:
             # print("HANDLE ACTION TAKEN")
-            print("REWARD: " + str(reward))
+            if self._render_on:
+                print("REWARD: " + str(reward))
             self._ml_step_callback(state_now, reward, self._game_over)
         self._action_taken = False
 
@@ -475,18 +500,40 @@ class App:
 
             # Run the main game loop
             last_time = pygame.time.get_ticks()
+            time_queue = deque(maxlen=100)
+            count = 0
+            # Seems to be just about the best delta-t for stepping the projectiles in
+            if self._render_on:
+                elapsed_time = RENDER_DELTA_T
+            else:
+                elapsed_time = HEADLESS_DELTA_T
+
             while self._running:
+                # start_time = time.time()
+
                 with self._lock:
                     if self._action_taken:
-                        # print("loop handle")
                         self._handle_action_taken()
 
-                    elapsed_time = pygame.time.get_ticks() - last_time
                     for event in pygame.event.get():
                         self.on_event(event)
+
                     self._handle_agents()
+
                     self.on_loop(elapsed_time)
-                    self.on_render()
+
+                    if self._render_on:
+                        self.on_render()
+
+                    # end_time = time.time()
+                    # time_queue.append(end_time-start_time)
+                    # if count == 100:
+                    #     count = 0
+                    #     print("AVG: " + str(1000 * (numpy.sum(time_queue)/len(time_queue))))
+
+                    count += 1
+
+                time.sleep(0.0001)  # Allow for some unlocked time
 
             self.on_cleanup()
 
@@ -496,5 +543,5 @@ class App:
 
 
 if __name__ == "__main__":
-    theApp = App()
+    theApp = App(render=True)
     theApp.on_execute()
