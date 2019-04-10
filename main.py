@@ -120,6 +120,7 @@ class App:
         try:
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
                 self._running = False
+                self._restart = False
                 print("Game over, you pressed quit.")
 
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:

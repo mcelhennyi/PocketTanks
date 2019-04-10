@@ -152,11 +152,6 @@ for e in range(n_episodes): # iterate over new episodes of the game
         if len(agent.get_memory()) > batch_size:
             agent.replay(batch_size)
 
-        # Save off every 50 episodes
-        if e % save_period == 0:
-            agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".hdf5")
-            logger.write_object_to_file()
-
         train_end = time.time()
 
         last_play_time = (int((game_end-time_start) / 60 * 10000)) / 10000
@@ -166,13 +161,18 @@ for e in range(n_episodes): # iterate over new episodes of the game
         print("Training took: " + str(last_train_time) + " minutes.")
 
         logger.add_game({
-            "winner": game.get_winner().get_name(),
+            "winner": "Player 1" if game.get_winner() == game.get_player_1() else "Player 2",
             "play_time": last_play_time,
             "train_time": last_train_time,
             "epsilon": agent.get_epsilon(),
             "player_1_health": game.get_player_1().get_health(),
             "player_2_health": game.get_player_2().get_health(),
         })
+
+        # Save off every 50 episodes
+        if e % save_period == 0:
+            agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".hdf5")
+            logger.write_object_to_file()
 
         logger.add_any('winners', winners)
     except KeyboardInterrupt:

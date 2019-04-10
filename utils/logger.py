@@ -47,14 +47,23 @@ class DataLogger:
 
     def write_object_to_file(self):
         with open(self._file_name, mode='w') as f:
-            json.dump(self._output, f)
+            json.dump(self._output, f, default=self._default, indent=3)
+
+    def _default(self, obj):
+        if type(obj).__module__ == np.__name__:
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return obj.item()
+        raise TypeError('Unknown type:', type(obj))
 
     def show_graphs(self):
 
         # Show First player graph
         x = []
         y = {
-
+            "Player 1": [],
+            "Player 2": [],
         }
         epsilon = []
         player_health = {
@@ -65,19 +74,25 @@ class DataLogger:
         for game in self._output['output']['games']:
             # make the X for the graph (games played)
             x.append(index)
-            index += 1
 
             # Make the y for each graph
-            if game['winner'] not in y:
-                y[game['winner']] = [1]
+            if len(y["Player 1"]) == 0:
+                y["Player 1"].append(1 if game['winner'] == 'Player 1' else 0)
             else:
-                y[game['winner']] = np.max(y[game['winner']]) + 1
+                y["Player 1"].append(np.max(y["Player 1"]) + 1 if game['winner'] == 'Player 1' else np.max(y["Player 1"]))
+
+            if len(y["Player 2"]) == 0:
+                y["Player 2"].append(1 if game['winner'] == 'Player 2' else 0)
+            else:
+                y["Player 2"].append(np.max(y["Player 2"]) + 1 if game['winner'] == 'Player 2' else np.max(y["Player 2"]))
 
             # Save off epsilon
             epsilon.append(game['epsilon'])
 
             # Mark health
             player_health['player_2_health'].append(game['player_2_health'])
+
+            index += 1
 
         # Draw both plots
         for i, key in enumerate(y):
@@ -96,5 +111,7 @@ class DataLogger:
         plt.title("Player 2 health at end")
         plt.ylabel('Health')
         plt.xlabel('Game Number')
+
+        plt.subplots_adjust(hspace=0.5)
 
         plt.show()
