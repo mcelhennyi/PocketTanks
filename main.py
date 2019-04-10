@@ -445,6 +445,12 @@ class App:
     def get_winner(self):
         return self._tank1 if self._tank1.is_alive() else self._tank2
 
+    def get_player_1(self):
+        return self._tank1
+
+    def get_player_2(self):
+        return self._tank2
+
     def on_render(self):
         # Reset screen to black
         self._display_surf.fill(BLACK)

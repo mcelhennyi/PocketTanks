@@ -57,6 +57,10 @@ class DataLogger:
 
         }
         epsilon = []
+        player_health = {
+            "player_1_health": [],
+            "player_2_health": [],
+        }
         index = 0
         for game in self._output['output']['games']:
             # make the X for the graph (games played)
@@ -72,17 +76,25 @@ class DataLogger:
             # Save off epsilon
             epsilon.append(game['epsilon'])
 
+            # Mark health
+            player_health['player_2_health'].append(game['player_2_health'])
+
         # Draw both plots
         for i, key in enumerate(y):
-            plt.subplot(3, 1, 1 + i)
+            plt.subplot(4, 1, 1 + i)
             plt.plot(x, y[key], 'o-')
             plt.title(key + " wins.")
             plt.ylabel('Win Amount')
 
-        plt.subplot(3, 1, 3)
+        plt.subplot(4, 1, 3)
         plt.plot(x, epsilon, 'o-')
         plt.title("Epsilon over time.")
         plt.ylabel('Epsilon')
+
+        plt.subplot(4, 1, 4)
+        plt.plot(x, player_health['player_2_health'], 'o-')
+        plt.title("Player 2 health at end")
+        plt.ylabel('Health')
         plt.xlabel('Game Number')
 
         plt.show()

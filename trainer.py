@@ -170,6 +170,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
             "play_time": last_play_time,
             "train_time": last_train_time,
             "epsilon": agent.get_epsilon(),
+            "player_1_health": game.get_player_1().get_health(),
+            "player_2_health": game.get_player_2().get_health(),
         })
 
         logger.add_any('winners', winners)
