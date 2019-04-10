@@ -127,6 +127,10 @@ class App:
                 self._running = False
                 print("Game restarted.")
 
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_h:
+                self._render_on = not self._render_on
+                print("Game is now " + "rendering." if self._render_on else "headless.")
+
             else:
                 if not self._game_over:
 
@@ -464,11 +468,11 @@ class App:
 
     def _handle_action_taken(self, no_reward=False):
         # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
-        reward = NOMINAL_REWARD/4  # A nominal reward amount
+        reward = NOMINAL_REWARD * 0.05  # A nominal reward amount
 
         if self._ml_suggested_next_action != self._ml_next_action:
             # If the ML deviates from the guide, fail it
-            reward = 0
+            reward = NOMINAL_REWARD * 0.01
             # print("reward zero, didnt follow guide")
             # print("guide action: " + str(self._ml_suggested_next_action))
 
