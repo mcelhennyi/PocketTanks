@@ -1,6 +1,8 @@
 import os
 import threading
 import time
+from collections import deque
+
 import numpy as np
 
 from threading import Thread
@@ -12,7 +14,7 @@ from main import App
 # Number of games to play
 from utils.logger import DataLogger
 
-n_episodes = 500
+n_episodes = 200
 save_period = 50  # Saves off every n episodes' model
 batch_size = 32  # multiples of 2
 
@@ -82,6 +84,12 @@ time.sleep(5)
 last_play_time = 0
 last_train_time = 0
 
+# Sliding window so we can check the winning rate, and see if its increasing
+winners_window = []
+window_size = int(n_episodes*0.1)
+p1_win_ratio = 0
+p2_win_ratio = 0
+
 # Track winner count
 winners = {}
 
@@ -143,6 +151,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
                 else:
                     winners[game.get_winner().get_name()] += 1
 
+                winners_window.append(game.get_winner().get_name())
+
         print("episode: {}/{}, e: {:.2}"  # print the episode's score and agent's epsilon
               .format(e, n_episodes, agent.get_epsilon()))
 
@@ -160,6 +170,16 @@ for e in range(n_episodes): # iterate over new episodes of the game
         print("Playing took: " + str(last_play_time) + " minutes.")
         print("Training took: " + str(last_train_time) + " minutes.")
 
+        if len(winners_window) == window_size:
+            win_count_1 = winners_window.count(game.get_player_1().get_name())
+            win_count_2 = winners_window.count(game.get_player_2().get_name())
+            p1_win_ratio = win_count_1/window_size
+            p2_win_ratio = win_count_2/window_size
+            winners_window = []
+
+        print("Player 1 win ratio: " + str(p1_win_ratio))
+        print("Player 2 win ratio: " + str(p2_win_ratio))
+
         logger.add_game({
             "winner": "Player 1" if game.get_winner() == game.get_player_1() else "Player 2",
             "play_time": last_play_time,
@@ -167,6 +187,8 @@ for e in range(n_episodes): # iterate over new episodes of the game
             "epsilon": agent.get_epsilon(),
             "player_1_health": game.get_player_1().get_health(),
             "player_2_health": game.get_player_2().get_health(),
+            "p1_win_ratio": p1_win_ratio,
+            "p2_win_ratio": p2_win_ratio
         })
 
         # Save off every 50 episodes

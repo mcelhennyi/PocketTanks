@@ -15,7 +15,7 @@ from map.terrain import Terrain, OutOfMapException
 from sprites.weapons.base_weapon import BaseWeapon
 
 
-NOMINAL_REWARD = 100
+NOMINAL_REWARD = 5
 RENDER_DELTA_T = 25000
 HEADLESS_DELTA_T = 45000
 
@@ -409,7 +409,7 @@ class App:
             # reward += self._reward_from_ml_shot
             reward = self._reward_from_ml_shot
             if self._render_on:
-                print("REWARD: " + str(reward))
+                print("REWARD - Fire: " + str(reward))
             if self._training_mode:
                 # print("Player two fired, handle callback")
                 self._ml_step_callback(state_now, reward, self._game_over)
@@ -446,6 +446,9 @@ class App:
     def get_winner(self):
         return self._tank1 if self._tank1.is_alive() else self._tank2
 
+    def get_loser(self):
+        return self._tank2 if self._tank1.is_alive() else self._tank1
+
     def get_player_1(self):
         return self._tank1
 
@@ -475,11 +478,11 @@ class App:
 
     def _handle_action_taken(self, no_reward=False):
         # Generate the state, note that here a NON firing action was taken, so reward will be None(?)
-        reward = NOMINAL_REWARD * 0.05  # A nominal reward amount
+        reward = NOMINAL_REWARD  # A nominal reward amount
 
         if self._ml_suggested_next_action != self._ml_next_action:
             # If the ML deviates from the guide, fail it
-            reward = NOMINAL_REWARD * 0.01
+            reward = NOMINAL_REWARD * 0.8
             # print("reward zero, didnt follow guide")
             # print("guide action: " + str(self._ml_suggested_next_action))
 
@@ -491,7 +494,7 @@ class App:
         if self._training_mode:
             # print("HANDLE ACTION TAKEN")
             if self._render_on:
-                print("REWARD: " + str(reward))
+                print("REWARD - Action: " + str(reward))
             self._ml_step_callback(state_now, reward, self._game_over)
         self._action_taken = False
 
