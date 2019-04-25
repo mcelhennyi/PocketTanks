@@ -32,3 +32,11 @@ python trainer.py
 ```
 to train DeQuaN!
 
+## Controls
+The following keys have the following commands for the game:  
+h: headless - turns the training session headless or not
+q: quit - ends the game
+, or .: Change the selected weapon
+- or =: decrease or increase the power
+left arrow or right arrow: decrease or increase the angle
+f: fire - launch the selected projectile.
