@@ -14,7 +14,7 @@ from main import App
 # Number of games to play
 from utils.logger import DataLogger
 
-n_episodes = 200
+n_episodes = 10000
 save_period = 50  # Saves off every n episodes' model
 batch_size = 32  # multiples of 2
 
@@ -133,13 +133,13 @@ for e in range(n_episodes): # iterate over new episodes of the game
             agent.remember(state, action, reward, next_state, game_over)
 
             # Save off this round
-            logger.add_step({
-                "state": state,
-                "action": action,
-                "reward": reward,
-                "next_state": next_state,
-                "game_over": game_over
-            })
+            #logger.add_step({
+            #    "state": state,
+            #    "action": action,
+            #    "reward": reward,
+            #    "next_state": next_state,
+            #    "game_over": game_over
+            #})
 
             # Save the state as next state
             state = next_state
