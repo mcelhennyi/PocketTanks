@@ -66,7 +66,7 @@ thread = Thread(target=game.on_execute)
 thread.start()
 
 # Create the agent
-agent = DqnAgent(state_size, action_size)
+agent = DqnAgent(state_size, action_size, force_continue=True)  # Set true to continue with low epsilon and loaded model
 
 # Create a data logger
 logger = DataLogger(
@@ -193,7 +193,7 @@ for e in range(n_episodes): # iterate over new episodes of the game
 
         # Save off every 50 episodes
         if e % save_period == 0:
-            agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".hdf5")
+            agent.save(output_dir + "weights_" + '{:04d}'.format(e + agent.restart_file_number_offset) + ".hdf5")
             logger.write_object_to_file()
 
         logger.add_any('winners', winners)

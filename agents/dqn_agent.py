@@ -10,14 +10,14 @@ import numpy as np
 
 
 class DqnAgent(BaseAgent):
-    def __init__(self, state_size, action_size, load_weights=False):
+    def __init__(self, state_size, action_size, force_continue=False, load_weights=False):
         BaseAgent.__init__(self)
 
         self._state_size = state_size
         self._action_size  = action_size
 
         self._gamma = 0.95
-        self._epsilon = 1.0
+        self._epsilon = 1.0 if not force_continue else 0.01
         self._epsilon_decay = 0.995
         self._epsilon_min = 0.01
 
@@ -27,14 +27,19 @@ class DqnAgent(BaseAgent):
         self._build_model()
 
         # Load up known weights
-        max_file_number = ''
-        if load_weights:
-            for file in os.listdir('/models'):
+        max_file_number = 0
+        if load_weights or force_continue:
+            for file in os.listdir('models'):
                 file_without_ending = file.split('.')[0]
                 file_number = file_without_ending.split('_')[1]
                 if int(file_number) > int(max_file_number):
-                    max_file_number = file_number
-            self.load(os.path.join('models', 'weights_' + max_file_number + '.hdf5'))
+                    max_file_number = int(file_number)
+            file_loaded = 'weights_' + str(max_file_number) + '.hdf5'
+            file_loaded = os.path.join('models', file_loaded)
+            print("Loading file " + str(file_loaded) + " to continue training.")
+            self.load(file_loaded)
+
+        self.restart_file_number_offset = max_file_number
 
     def _build_model(self):
         # neural net to approximate Q-value function:
