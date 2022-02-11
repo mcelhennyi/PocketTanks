@@ -5,7 +5,7 @@ from agents import BaseAgent
 
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 
 
@@ -34,7 +34,7 @@ class DqnAgent(BaseAgent):
                 file_number = file_without_ending.split('_')[1]
                 if int(file_number) > int(max_file_number):
                     max_file_number = int(file_number)
-            file_loaded = 'weights_' + str(max_file_number) + '.hdf5'
+            file_loaded = 'weights_' + '0' + str(max_file_number) + '.hdf5'
             file_loaded = os.path.join('models', file_loaded)
             print("Loading file " + str(file_loaded) + " to continue training.")
             self.load(file_loaded)
